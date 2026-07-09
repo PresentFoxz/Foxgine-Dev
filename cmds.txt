@@ -1,0 +1,2 @@
+cd "/c/Users/vcapr/Downloads/GameDev/Foxgine/games/Test"
+make clean all run
