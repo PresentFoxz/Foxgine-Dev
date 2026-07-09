@@ -8,8 +8,7 @@
 
 #include "mesh/allMeshes.h"
 
-EWRAM_BSS Pixel_t framebuffer[SCREEN_W * SCREEN_H];
-Pixel_t *buffer = framebuffer;
+Pixel_t *buffer;
 
 Camera_t cam;
 int interlace = 0;
@@ -33,14 +32,11 @@ KeyInputs inputs = {0};
 // }
 
 static void init() {
-    cam = (Camera_t){ .pos = (Vec3f){0, 0, -3}, .rot = (Vec3f){0, 0, 0}, .fov = 90.0f, .nearPlane = 0.15f, .farPlane = 1000.0f };
+    initTable();
+    buffer = malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(Pixel_t));
+    cam = (Camera_t){ .pos = (Vec3s24){0, 0, to_fixed24(-100.0f)}, .rot = (Vec3s24){0, 0, 0}, .fov = to_fixed24(60.0f), .nearPlane = to_fixed24(0.15f), .farPlane = to_fixed24(1000.0f) };
 
-    load_mesh(&map, Chicken_verts, CHICKEN_VERT, Chicken_tris, CHICKEN_TRI, Chicken_colors);
-}
-
-static void present() {
-    volatile uint16_t *vram = (uint16_t*)VRAM;
-    for (int i = 0; i < 240 * 160; i++) { vram[i] = framebuffer[i]; }
+    load_mesh(&map, Castle_verts, CASTLE_VERT, Castle_tris, CASTLE_TRI, Castle_colors);
 }
 
 int main() {
@@ -48,7 +44,7 @@ int main() {
     irqEnable(IRQ_VBLANK);
 
     REG_DISPCNT = MODE_3 | BG2_ENABLE;
-    buffer = (Pixel_t*)VRAM;
+    Pixel_t* screenBuffer = (Pixel_t*)VRAM;
 
     init();
     alloc_mesh();
@@ -61,11 +57,11 @@ int main() {
         move_camera(&cam, inputs);
         computeCamData(&cam);
 
-        add_mesh_scene(map, (Vec3f){0, 0, 1}, (Vec3f){0, 0, 0}, (Vec3f){1, 1, 1}, cam, cam.fov, cam.nearPlane, cam.farPlane);
+        add_mesh_scene(map, (Vec3s24){0, 0, 0}, (Vec3s24){0, 0, 0}, (Vec3s24){to_fixed24(1.0f), to_fixed24(1.0f), to_fixed24(1.0f)}, cam);
         draw_tris(cam);
 
-        VBlankIntrWait();
-        present();
+        while(REG_VCOUNT >= 160);
+        memcpy(screenBuffer, buffer, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(Pixel_t));
     }
 
     return 0;

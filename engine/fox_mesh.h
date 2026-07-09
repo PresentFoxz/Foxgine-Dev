@@ -8,12 +8,13 @@
 #include <math.h>
 
 #include "fox_structs.h"
+#include "fox_fixed.h"
 
 #define TRI_LIMIT 1000
 #define VERT_LIMIT (TRI_LIMIT * 2)
 
 typedef struct {
-    Vec3f p0, p1, p2;
+    Vec3s24 p0, p1, p2;
     Color_t color;
 } Triangle_t;
 
@@ -22,20 +23,16 @@ typedef struct {
 } TriRend_t;
 
 typedef struct {
-    Vec3f pos;
-} VertMesh;
-
-typedef struct {
     int t0, t1, t2;
 } TriMesh;
 
 typedef struct {
-    VertMesh *verts;
+    Vec3s24 *verts;
     int vertCount;
 
     int (*tris)[3];
     Color_t *colors;
-    Vec3f *normal;
+    Vec3s24 *normal;
     int triCount;
 } Mesh;
 
@@ -83,10 +80,10 @@ static Vec3f computeNormal(Vec3f tri[3]) {
 }
 
 static void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const int (*tris)[3], int triCount, const Color_t *colors) {
-    meshModel->verts = malloc(sizeof(VertMesh) * vertCount);
+    meshModel->verts = malloc(sizeof(Vec3s24) * vertCount);
     meshModel->tris = malloc(sizeof(int[3]) * triCount);
     meshModel->colors = malloc(sizeof(Color_t) * triCount);
-    meshModel->normal = malloc(sizeof(Vec3f) * triCount);
+    meshModel->normal = malloc(sizeof(Vec3s24) * triCount);
 
     if (!meshModel->verts || !meshModel->tris || !meshModel->colors || !meshModel->normal) {
         printf("Mesh malloc failed\n");
@@ -96,7 +93,7 @@ static void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const 
     meshModel->vertCount = vertCount;
     meshModel->triCount = triCount;
 
-    for(int i = 0; i < vertCount; i++) { meshModel->verts[i].pos = verts[i]; }
+    for(int i = 0; i < vertCount; i++) { meshModel->verts[i] = (Vec3s24){to_fixed24(verts[i].x), to_fixed24(verts[i].y), to_fixed24(verts[i].z)}; }
 
     for(int i = 0; i < triCount; i++) {
         meshModel->tris[i][0] = tris[i][0];
@@ -106,12 +103,13 @@ static void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const 
         meshModel->colors[i] = colors[i];
 
         Vec3f face[3] = {
-            meshModel->verts[tris[i][0]].pos,
-            meshModel->verts[tris[i][1]].pos,
-            meshModel->verts[tris[i][2]].pos
+            {from_fixed24(meshModel->verts[tris[i][0]].x), from_fixed24(meshModel->verts[tris[i][0]].y), from_fixed24(meshModel->verts[tris[i][0]].z)},
+            {from_fixed24(meshModel->verts[tris[i][1]].x), from_fixed24(meshModel->verts[tris[i][1]].y), from_fixed24(meshModel->verts[tris[i][1]].z)},
+            {from_fixed24(meshModel->verts[tris[i][2]].x), from_fixed24(meshModel->verts[tris[i][2]].y), from_fixed24(meshModel->verts[tris[i][2]].z)}
         };
 
-        meshModel->normal[i] = computeNormal(face);
+        Vec3f norm = computeNormal(face);
+        meshModel->normal[i] = (Vec3s24){to_fixed24(norm.x), to_fixed24(norm.y), to_fixed24(norm.z)};
     }
 }
 

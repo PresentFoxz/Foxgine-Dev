@@ -2,12 +2,16 @@
 #define ENTITIES_H
 
 #include "entities_structs.h"
+#include "fox_fixed.h"
 
 static void move_camera(Camera_t *cam, KeyInputs inputs) {
-    float yaw = cam->rot.y;
-    float rotYaw = 0.05f;
-    float rotPitch = 0.05f;
-    float moveSpd = 0.2f;
+    qFixed24x8_t yaw = cam->rot.y;
+    qFixed24x8_t rotYaw = to_fixed24(0.05f);
+    qFixed24x8_t rotPitch = to_fixed24(0.05f);
+    qFixed24x8_t moveSpd = to_fixed24(0.2f);
+
+    qFixed24x8_t sinYaw = fsin24(rad24_to_index(yaw));
+    qFixed24x8_t cosYaw = fcos24(rad24_to_index(yaw));
 
     if (cam->camLock){
         if (inputs.up) { cam->rot.x -= rotPitch; }
@@ -16,23 +20,23 @@ static void move_camera(Camera_t *cam, KeyInputs inputs) {
         if (inputs.right) { cam->rot.y += rotYaw; }
     } else {
         if (inputs.up) {
-            cam->pos.x += moveSpd * sin(yaw);
-            cam->pos.z += moveSpd * cos(yaw);
+            cam->pos.x += mul_24(moveSpd, sinYaw);
+            cam->pos.z += mul_24(moveSpd, cosYaw);
         }
 
         if (inputs.down) {
-            cam->pos.x -= moveSpd * sin(yaw);
-            cam->pos.z -= moveSpd * cos(yaw);
+            cam->pos.x -= mul_24(moveSpd, sinYaw);
+            cam->pos.z -= mul_24(moveSpd, cosYaw);
         }
 
         if (inputs.left) {
-            cam->pos.x -= moveSpd * cos(yaw);
-            cam->pos.z += moveSpd * sin(yaw);
+            cam->pos.x -= mul_24(moveSpd, cosYaw);
+            cam->pos.z += mul_24(moveSpd, sinYaw);
         }
 
         if (inputs.right) {
-            cam->pos.x += moveSpd * cos(yaw);
-            cam->pos.z -= moveSpd * sin(yaw);
+            cam->pos.x += mul_24(moveSpd, cosYaw);
+            cam->pos.z -= mul_24(moveSpd, sinYaw);
         }
     }
 

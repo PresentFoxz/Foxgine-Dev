@@ -44,13 +44,14 @@ static void run_game() {
     move_camera(&cam, inputs);
     computeCamData(&cam);
 
-    add_mesh_scene(map, (Vec3f){0, 0, 0}, (Vec3f){0, 0, 0}, (Vec3f){1, 1, 1}, cam, cam.fov, cam.nearPlane, cam.farPlane);
+    add_mesh_scene(map, (Vec3s24){0, 0, 0}, (Vec3s24){0, 0, 0}, (Vec3s24){to_fixed24(1.0f), to_fixed24(1.0f), to_fixed24(1.0f)}, cam);
     draw_tris(cam);
 }
 
 static void init() {
+    initTable();
     buffer = malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
-    cam = (Camera_t){ .pos = (Vec3f){0, 0, -5}, .rot = (Vec3f){0, 0, 0}, .fov = 90.0f, .nearPlane = 0.15f, .farPlane = 1000.0f };
+    cam = (Camera_t){ .pos = (Vec3s24){0, 0, to_fixed24(-100.0f)}, .rot = (Vec3s24){0, 0, 0}, .fov = to_fixed24(90.0f), .nearPlane = to_fixed24(0.1f), .farPlane = to_fixed24(1000.0f) };
 
     load_mesh(&map, Castle_verts, CASTLE_VERT, Castle_tris, CASTLE_TRI, Castle_colors);
 }

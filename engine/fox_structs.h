@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+typedef int64_t qFixed32_t;
 typedef int32_t qFixed16_t;
 typedef int32_t qFixed24x8_t;
 
@@ -39,6 +40,10 @@ typedef struct {
 } Vec3s16;
 
 typedef struct {
+    qFixed16_t x[3][3];
+} Mat3x3;
+
+typedef struct {
     int width;
     int height;
     int8_t *pixels;
@@ -63,12 +68,12 @@ typedef struct {
 } KeyInputs;
 
 typedef struct {
-    Vec3f pos;
-    Vec3f rot;
+    Vec3s24 pos;
+    Vec3s24 rot;
 
-    float fov, nearPlane, farPlane;
-    float camMat[3][3];
-    float focal;
+    qFixed24x8_t fov, nearPlane, farPlane;
+    qFixed16_t focal;
+    Mat3x3 matrix;
 
     bool camLock;
 } Camera_t;
