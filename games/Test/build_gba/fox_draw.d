@@ -12,7 +12,8 @@ fox_draw.o: \
  C:/devkitpro/libgba/include/gba_types.h \
  C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_structs.h \
  C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_mesh.h \
- C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_fixed.h
+ C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_fixed.h \
+ C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_palette.h
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_draw.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_library.h:
 C:/devkitpro/libgba/include/gba_console.h:
@@ -26,3 +27,4 @@ C:/devkitpro/libgba/include/gba_types.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_structs.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_mesh.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_fixed.h:
+C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_palette.h:

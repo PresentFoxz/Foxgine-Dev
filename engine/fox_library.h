@@ -13,8 +13,8 @@
 #include <SDL2/SDL.h>
 
 typedef uint32_t Pixel_t;
-#define SCREEN_W 1200
-#define SCREEN_H 720
+#define SCREEN_W 240
+#define SCREEN_H 160
 
 #elif defined(PLATFORM_GBA)
 
@@ -25,7 +25,7 @@ typedef uint32_t Pixel_t;
 #include <gba_input.h>
 #include <gba_types.h>
 
-typedef uint16_t Pixel_t;
+typedef uint8_t Pixel_t;
 #define MAIN_SCREEN_W 240
 #define MAIN_SCREEN_H 160
 

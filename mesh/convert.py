@@ -1,10 +1,34 @@
 import sys
 import os
 import random
+import re
 
-def convert_obj(input_file, output_file, name):
+def load_palette(filename):
+    colors = []
+
+    with open(filename, "r") as f:
+        data = f.read()
+
+    matches = re.findall(
+        r"\{\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\}",
+        data
+    )
+
+    for r, g, b, a in matches:
+        colors.append((
+            int(r),
+            int(g),
+            int(b),
+            int(a)
+        ))
+
+    return colors
+
+def convert_obj(input_file, output_file, name, palette_file):
     vertices = []
     triangles = []
+
+    palette = load_palette(palette_file)
 
     with open(input_file, "r") as f:
         for line in f:
@@ -17,8 +41,6 @@ def convert_obj(input_file, output_file, name):
             elif line.startswith("f "):
                 parts = line.split()[1:]
 
-                # supports: f 1 2 3
-                # also supports: f 1/1/1 2/2/2 3/3/3
                 indices = []
 
                 for p in parts[:3]:
@@ -72,9 +94,9 @@ def convert_obj(input_file, output_file, name):
         )
 
         for _ in triangles:
-            c = random.randint(180,255)
+            pID = random.randint(0, (len(palette)-1))
             out.write(
-                f"    {{{c}, {c}, {c}, 255}},\n"
+                f"    {{{palette[pID][0]}, {palette[pID][1]}, {palette[pID][2]}, 255}},\n"
             )
 
         out.write("};\n\n")
@@ -84,17 +106,17 @@ def convert_obj(input_file, output_file, name):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print(
-            "Usage: python obj_to_h.py input.obj output.h"
-        )
+    if len(sys.argv) < 4:
+        print("Usage: python obj_to_h.py input.obj output.h palette.h")
         sys.exit(1)
+
 
     obj = sys.argv[1]
     out = sys.argv[2]
+    palette = sys.argv[3]
 
     name = os.path.splitext(os.path.basename(out))[0]
 
-    convert_obj(obj, out, name)
+    convert_obj(obj, out, name, palette)
 
     print("Converted:", obj, "->", out)

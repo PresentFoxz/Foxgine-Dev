@@ -47,7 +47,15 @@ void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const int (*t
         meshModel->tris[i].b = tris[i][1];
         meshModel->tris[i].c = tris[i][2];
 
+        #ifdef PLATFORM_WIN
         meshModel->colors[i] = color_to_pixel(colors[i]);
+        #elif defined(PLATFORM_GBA)
+        int colorIndex = color_to_index(colors[i]);
+        if (colorIndex != -1) meshModel->colors[i] = colorIndex;
+        else meshModel->colors[i] = 1;
+
+        printf("Color Index: %d | ", colorIndex);
+        #endif
 
         Vec3f face[3] = {
             {from_fixed24(meshModel->verts[tris[i][0]].x), from_fixed24(meshModel->verts[tris[i][0]].y), from_fixed24(meshModel->verts[tris[i][0]].z)},
@@ -58,4 +66,5 @@ void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const int (*t
         Vec3f norm = computeNormal(face);
         meshModel->normal[i] = (Vec3s24){to_fixed24(norm.x), to_fixed24(norm.y), to_fixed24(norm.z)};
     }
+    printf("\n");
 }

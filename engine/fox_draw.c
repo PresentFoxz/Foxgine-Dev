@@ -1,13 +1,30 @@
 #include "fox_draw.h"
 #include "fox_fixed.h"
+#include "fox_palette.h"
 
-Pixel_t color_to_pixel(Color_t c) {
-    #ifdef PLATFORM_WIN
-    return ((uint32_t)c.a << 24) | ((uint32_t)c.r << 16) | ((uint32_t)c.g << 8) | ((uint32_t)c.b);
-    #elif defined(PLATFORM_GBA)
-    return RGB5(c.r >> 3, c.g >> 3, c.b >> 3);
-    #endif
+uint8_t paletteIndex = 0;
+#ifdef PLATFORM_WIN
+
+Pixel_t color_to_pixel(Color_t c) { return ((uint32_t)c.a << 24) | ((uint32_t)c.r << 16) | ((uint32_t)c.g << 8) | ((uint32_t)c.b); }
+
+#elif defined(PLATFORM_GBA)
+
+int color_to_index(Color_t c) {
+    for(int i = 0; i < PALETTE_COUNT; i++) {
+        if(palettes[i].r == c.r && palettes[i].g == c.g && palettes[i].b == c.b) {
+            return i;
+        }
+    }
+
+    return -1;
 }
+
+void add_palette(Color_t c) {
+    if(paletteIndex >= 256) return;
+    BG_PALETTE[paletteIndex++] = RGB5(c.r >> 3, c.g >> 3, c.b >> 3);
+}
+
+#endif
 
 void draw_pixel(int x, int y, Pixel_t col) {
     if ((y & 1) != interlace) return;
@@ -43,21 +60,24 @@ static inline void draw_strip(int x1, int x2, int y, Pixel_t col) {
     Pixel_t *dst = &mainBuffer[y * SCREEN_W + x1];
     int count = x2 - x1 + 1;
 
-    u32 pair = ((u32)col << 16) | col;
-
-    if(((uintptr_t)dst & 2) && count) {
+    if(((uintptr_t)dst & 1) && count) {
         *dst++ = col;
         count--;
     }
 
-    u32 *dst32 = (u32*)dst;
+    u16 pair = ((u16)col << 8) | col;
+    u16 *dst16 = (u16*)dst;
+
     while(count >= 2) {
-        *dst32++ = pair;
+        *dst16++ = pair;
         count -= 2;
     }
 
-    dst = (Pixel_t*)dst32;
-    if(count) *dst = col;
+    dst = (Pixel_t*)dst16;
+
+    if(count) {
+        *dst = col;
+    }
     #else
     Pixel_t *dst = &mainBuffer[y * SCREEN_W + x1];
     int count = x2 - x1 + 1;

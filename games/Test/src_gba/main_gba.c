@@ -3,6 +3,7 @@
 #include "fox_structs.h"
 #include "fox_mesh.h"
 #include "fox_draw.h"
+#include "fox_palette.h"
 
 #include "objects/entities.h"
 
@@ -34,6 +35,8 @@ static void check_inputs() {
 
 static void init() {
     initTable();
+    for (int p=0; p < PALETTE_COUNT; p++){ add_palette(palettes[p]); }
+
     screenBuffer = malloc(MAIN_SCREEN_W * MAIN_SCREEN_H * sizeof(Pixel_t));
     mainBuffer = malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
     cam = (Camera_t){
@@ -41,7 +44,7 @@ static void init() {
         .fov = to_fixed24(90.0f), .nearPlane = to_fixed24(0.1f), .farPlane = to_fixed24(1000.0f)
     };
 
-    bgColor = color_to_pixel((Color_t){0, 0, 0, 255});
+    bgColor = color_to_index((Color_t){0, 0, 0, 255});
     load_mesh(&map, Cube_verts, CUBE_VERT, Cube_tris, CUBE_TRI, Cube_colors);
 }
 
@@ -67,7 +70,7 @@ int main() {
     irqInit();
     irqEnable(IRQ_VBLANK);
 
-    REG_DISPCNT = MODE_3 | BG2_ENABLE;
+    REG_DISPCNT = MODE_4 | BG2_ENABLE;
     Pixel_t* screenBuffer = (Pixel_t*)VRAM;
 
     init();

@@ -3,6 +3,7 @@
 #include "fox_structs.h"
 #include "fox_mesh.h"
 #include "fox_draw.h"
+#include "fox_palette.h"
 
 #include "objects/entities.h"
 
@@ -51,13 +52,14 @@ static void run_game() {
 
 static void init() {
     initTable();
+
     mainBuffer = malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
     cam = (Camera_t){
         .pos = (Vec3s24){to_fixed24(0.0f), to_fixed24(0.0f), to_fixed24(-2.0f)}, .rot = (Vec3s24){to_fixed24(0.0f), to_fixed24(0.0f), to_fixed24(0.0f)},
         .fov = to_fixed24(90.0f), .nearPlane = to_fixed24(0.1f), .farPlane = to_fixed24(1000.0f)
     };
 
-    bgColor = color_to_pixel((Color_t){0, 0, 0, 255});
+    bgColor = color_to_pixel(palettes[0]);
     load_mesh(&map, Cube_verts, CUBE_VERT, Cube_tris, CUBE_TRI, Cube_colors);
 }
 

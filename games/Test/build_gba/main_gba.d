@@ -17,6 +17,7 @@ main_gba.o: \
  C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_structs.h \
  C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_mesh.h \
  C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_draw.h \
+ C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_palette.h \
  C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/games/Test/src_gba/objects/entities.h \
  C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/games/Test/src_gba/objects/entities_structs.h \
  C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_fixed.h \
@@ -41,6 +42,7 @@ C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_fixed.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_structs.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_mesh.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_draw.h:
+C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_palette.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/games/Test/src_gba/objects/entities.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/games/Test/src_gba/objects/entities_structs.h:
 C:/Users/vcapr/Downloads/GameDev/Foxgine-Dev/engine/fox_fixed.h:
