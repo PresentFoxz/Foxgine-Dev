@@ -72,6 +72,7 @@ typedef struct {
     Vec3s24 rot;
 
     qFixed24x8_t fov, nearPlane, farPlane;
+    qFixed24x8_t renderRadiusSq;
     qFixed16_t focal;
     Mat3x3 matrix;
 

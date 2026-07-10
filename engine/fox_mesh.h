@@ -28,13 +28,21 @@ typedef struct {
 } TriMesh;
 
 typedef struct {
+    int a, b, c;
+} TriIndex;
+
+typedef struct {
     Vec3s24 *verts;
     int vertCount;
 
-    int (*tris)[3];
+    TriIndex *tris;
     Pixel_t *colors;
     Vec3s24 *normal;
+
+    Vec3s24 *triCenters;
     int triCount;
+
+    qFixed24x8_t radius;
 } Mesh;
 
 typedef struct {

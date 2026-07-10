@@ -26,31 +26,51 @@ void clear_buf(Pixel_t col) {
     }
 }
 
-void draw_rect(int x, int y, int w, int h, Pixel_t col) {
-    for (int yy = y; yy < y + h; yy++) {
-        if ((yy & 1) != interlace) continue;
-
-        Pixel_t *row = &mainBuffer[yy * SCREEN_W + x];
-        for (int xx = x; xx < x + w; xx++) { row[xx] = col; }
-    }
-}
-
 static inline void draw_strip(int x1, int x2, int y, Pixel_t col) {
     if(y < 0 || y >= SCREEN_H) return;
+
     if(x1 > x2) {
-        int temp = x1;
+        int t = x1;
         x1 = x2;
-        x2 = temp;
+        x2 = t;
     }
-    
+
     if(x2 < 0 || x1 >= SCREEN_W) return;
     if(x1 < 0) x1 = 0;
     if(x2 >= SCREEN_W) x2 = SCREEN_W - 1;
 
-
-    Pixel_t* dst = &mainBuffer[y * SCREEN_W + x1];
+    #ifdef PLATFORM_GBA
+    Pixel_t *dst = &mainBuffer[y * SCREEN_W + x1];
     int count = x2 - x1 + 1;
-    while(count--) { *dst++ = col; }
+
+    u32 pair = ((u32)col << 16) | col;
+
+    if(((uintptr_t)dst & 2) && count) {
+        *dst++ = col;
+        count--;
+    }
+
+    u32 *dst32 = (u32*)dst;
+    while(count >= 2) {
+        *dst32++ = pair;
+        count -= 2;
+    }
+
+    dst = (Pixel_t*)dst32;
+    if(count) *dst = col;
+    #else
+    Pixel_t *dst = &mainBuffer[y * SCREEN_W + x1];
+    int count = x2 - x1 + 1;
+    while(count--) *dst++ = col;
+    #endif
+}
+
+void draw_rect(int x, int y, int w, int h, Pixel_t col) {
+    for (int yy = y; yy < y + h; yy++) {
+        if ((yy & 1) != interlace) continue;
+        
+        draw_strip(x, x + w - 1, yy, col);
+    }
 }
 
 void draw_tri_fixed(TriRend_t tri, Pixel_t col) {
@@ -64,24 +84,24 @@ void draw_tri_fixed(TriRend_t tri, Pixel_t col) {
     if(v2.y < v1.y){ temp=v1; v1=v2; v2=temp; }
 
 
-    int dy02 = v2.y - v0.y;
+    qFixed16_t dy02 = to_fixed16(v2.y - v0.y);
     if(dy02 <= 0) return;
 
-    int dy01 = v1.y - v0.y;
-    int dy12 = v2.y - v1.y;
+    qFixed16_t dy01 = to_fixed16(v1.y - v0.y);
+    qFixed16_t dy12 = to_fixed16(v2.y - v1.y);
     
     int cross = (v1.x - v0.x) * (v2.y - v0.y) - (v1.y - v0.y) * (v2.x - v0.x);
-    bool middleLeft = cross > 0;
-
-    qFixed16_t dxLong = ((v2.x - v0.x) << FIXED16_SHIFT) / dy02;
+    bool middleLeft = (cross > 0);
+    
+    qFixed16_t dxLong = div_16(((v2.x - v0.x) << FIXED16_SHIFT), dy02);
     qFixed16_t dxTop = 0;
     qFixed16_t dxBottom = 0;
 
-    if(dy01) dxTop = ((v1.x - v0.x) << FIXED16_SHIFT) / dy01;
-    if(dy12) dxBottom = ((v2.x - v1.x) << FIXED16_SHIFT) / dy12;
+    if(dy01) dxTop = div_16(((v1.x - v0.x) << FIXED16_SHIFT), dy01);
+    if(dy12) dxBottom = div_16(((v2.x - v1.x) << FIXED16_SHIFT), dy12);
 
-    qFixed16_t xLong = fixed_from_int(v0.x);
-    qFixed16_t xShort = fixed_from_int(v0.x);
+    int xLong  = fixed_from_int(v0.x);
+    int xShort = fixed_from_int(v0.x);
 
     int y;
     for(y=v0.y; y<v1.y; y++) {

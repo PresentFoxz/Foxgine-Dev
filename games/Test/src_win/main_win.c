@@ -20,6 +20,7 @@ int interlace = 0;
 
 Mesh map;
 
+Pixel_t bgColor;
 KeyInputs inputs = {0};
 static void check_inputs() {
     SDL_PumpEvents();
@@ -38,7 +39,7 @@ static void check_inputs() {
 
 static void run_game() {
     interlace ^= 1;
-    clear_buf(color_to_pixel((Color_t){0, 0, 0, 255}));
+    clear_buf(bgColor);
 
     check_inputs();
     move_camera(&cam, inputs);
@@ -56,6 +57,7 @@ static void init() {
         .fov = to_fixed24(90.0f), .nearPlane = to_fixed24(0.1f), .farPlane = to_fixed24(1000.0f)
     };
 
+    bgColor = color_to_pixel((Color_t){0, 0, 0, 255});
     load_mesh(&map, Cube_verts, CUBE_VERT, Cube_tris, CUBE_TRI, Cube_colors);
 }
 

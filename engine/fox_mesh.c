@@ -43,9 +43,9 @@ void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const int (*t
     for(int i = 0; i < vertCount; i++) { meshModel->verts[i] = (Vec3s24){to_fixed24(verts[i].x), to_fixed24(verts[i].y), to_fixed24(verts[i].z)}; }
 
     for(int i = 0; i < triCount; i++) {
-        meshModel->tris[i][0] = tris[i][0];
-        meshModel->tris[i][1] = tris[i][1];
-        meshModel->tris[i][2] = tris[i][2];
+        meshModel->tris[i].a = tris[i][0];
+        meshModel->tris[i].b = tris[i][1];
+        meshModel->tris[i].c = tris[i][2];
 
         meshModel->colors[i] = color_to_pixel(colors[i]);
 

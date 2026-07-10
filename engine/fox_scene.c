@@ -106,77 +106,63 @@ void add_mesh_scene(Mesh model, Vec3s24 pos, Vec3s24 rot, Vec3s24 size, Camera_t
     if (triDist == NULL) return;
     if (fullMesh.triCount >= FULL_MESH_TRIS) return;
 
-    qFixed24x8_t renderRadiusSq = cam.farPlane ? mul_24(cam.farPlane, cam.farPlane) : 0.0f;
-
-    int triCount = model.triCount;
-    int (*tris)[3] = model.tris;
-    int vertCount = model.vertCount;
-    Vec3s24 *verts = model.verts;
-    Pixel_t *color = model.colors;
-    Vec3s24 *normal = model.normal;
-
     Mat3x3 modelMat;
-    computeRotScaleMatrix(&modelMat, rot.x, rot.y, rot.z, size.x, size.y, size.z);
+    bool matRotated = false;
+    if (rot.x != 0 && rot.y != 0 && rot.z != 0) {
+        if (size.x == to_fixed24(1.0f) && size.y == to_fixed24(1.0f) && size.z == to_fixed24(1.0f)) { computeRotMatrix(&modelMat, rot.x, rot.y, rot.z); }
+        else { computeRotScaleMatrix(&modelMat, rot.x, rot.y, rot.z, size.x, size.y, size.z); }
 
-    Triangle_t currentTri;
+        matRotated = true;
+    }
+
+    for(int i = 0; i < model.triCount; i++) {
+        qFixed24x8_t len = sqrtf(mul_24(model.normal[i].x, model.normal[i].x) + mul_24(model.normal[i].y, model.normal[i].y) + mul_24(model.normal[i].z, model.normal[i].z));
+        qFixed24x8_t one_over_len = (len > 0) ? div_24(FIXED_ONE24x8, len) : 0;
+        
+        if(len > 0) {
+            model.normal[i].x = mul_24(model.normal[i].x, one_over_len);
+            model.normal[i].y = mul_24(model.normal[i].y, one_over_len);
+            model.normal[i].z = mul_24(model.normal[i].z, one_over_len);
+        }
+    }
+
     bool triFacing = false;
-    for (int t = 0; t < triCount; t++) {
+    for (int t = 0; t < model.triCount; t++) {
         if (fullMesh.triCount >= FULL_MESH_TRIS) return;
 
-        Vec3s24 world[3];
-        Vec3s24 view[3];
-        int *tri = model.tris[t];
-        qFixed24x8_t sumX = 0;
-        qFixed24x8_t sumY = 0;
-        qFixed24x8_t sumZ = 0;
-
+        Vec3s24 triStore[3];
+        qFixed24x8_t sumX = 0, sumY = 0, sumZ = 0;
+        TriIndex tri = model.tris[t];
+        Vec3s24 verts[3] = {model.verts[tri.a], model.verts[tri.b], model.verts[tri.c]};
         for (int v = 0; v < 3; v++) {
-            Vec3s24 vert = model.verts[tri[v]];
-            rotateVertex(vert, &modelMat, &world[v]);
+            if (matRotated) { rotateVertex(verts[v], &modelMat, &triStore[v]); } else { triStore[v] = verts[v]; }
             
-            world[v].x += pos.x;
-            world[v].y += pos.y;
-            world[v].z += pos.z;
+            triStore[v].x += pos.x;
+            triStore[v].y += pos.y;
+            triStore[v].z += pos.z;
 
-            sumX += world[v].x;
-            sumY += world[v].y;
-            sumZ += world[v].z;
+            sumX += triStore[v].x;
+            sumY += triStore[v].y;
+            sumZ += triStore[v].z;
             
-            rotateVertexInPlace(&world[v], cam.pos, &cam.matrix);
-            view[v] = world[v];
+            rotateVertexInPlace(&triStore[v], cam.pos, &cam.matrix);
         }
 
-        qFixed24x8_t cx = mul_24(sumX, one_third);
-        qFixed24x8_t cy = mul_24(sumY, one_third);
-        qFixed24x8_t cz = mul_24(sumZ, one_third);
+        Vec3s24 center = {mul_24(sumX, one_third), mul_24(sumY, one_third), mul_24(sumZ, one_third)};
+        Vec3s24 fVect = {center.x - cam.pos.x, center.y - cam.pos.y, center.z - cam.pos.z};
 
-        Vec3s24 fVect = {cx - cam.pos.x, cy - cam.pos.y, cz - cam.pos.z};
-        Vec3s24 n = normal[t];
-        rotateVertex(n, &modelMat, &n);
-        qFixed24x8_t len = sqrtf(mul_24(n.x, n.x) + mul_24(n.y, n.y) + mul_24(n.z, n.z));
-        if (len > 0.0f) { n.x /= len; n.y /= len; n.z /= len; }
-
-        qFixed24x8_t dot = mul_24(n.x, fVect.x) + mul_24(n.y, fVect.y) + mul_24(n.z, fVect.z);
+        qFixed24x8_t dot = mul_24(model.normal[t].x, fVect.x) + mul_24(model.normal[t].y, fVect.y) + mul_24(model.normal[t].z, fVect.z);
         triFacing = (dot < 0) ? true : false;
         if (!triFacing) continue;
-        if (world[0].z < cam.nearPlane && world[1].z < cam.nearPlane && world[2].z < cam.nearPlane) continue;
+        if (triStore[0].z < cam.nearPlane && triStore[1].z < cam.nearPlane && triStore[2].z < cam.nearPlane) continue;
 
-        currentTri.p0 = view[0];
-        currentTri.p1 = view[1];
-        currentTri.p2 = view[2];
-        currentTri.color = color[t];
+        Vec3s24 distVect = {center.x - cam.pos.x, center.y - cam.pos.y, center.z - cam.pos.z};
+        qFixed24x8_t dist = mul_24(distVect.x, distVect.x) + mul_24(distVect.y, distVect.y) + mul_24(distVect.z, distVect.z);
+        if (cam.farPlane && dist > cam.renderRadiusSq) continue;
 
-        qFixed24x8_t dx = cx - cam.pos.x;
-        qFixed24x8_t dy = cy - cam.pos.y;
-        qFixed24x8_t dz = cz - cam.pos.z;
-        qFixed24x8_t dist = mul_24(dx, dx) + mul_24(dy, dy) + mul_24(dz, dz);
-        if (cam.farPlane && dist > renderRadiusSq) continue;
+        triDist[fullMesh.triCount] = (ObjectOrdering){ .idx = fullMesh.triCount, .obj = O_Triangle, .dist = dist };
 
-        triDist[fullMesh.triCount].dist = dist;
-        triDist[fullMesh.triCount].idx = fullMesh.triCount;
-        triDist[fullMesh.triCount].obj = O_Triangle;
-
-        fullMesh.tris[fullMesh.triCount] = currentTri;
+        fullMesh.tris[fullMesh.triCount] = (Triangle_t){ .p0 = triStore[0], .p1 = triStore[1], .p2 = triStore[2], .color = model.colors[t] };
 
         fullMesh.triCount++;
         triDistAmt++;
@@ -186,4 +172,5 @@ void add_mesh_scene(Mesh model, Vec3s24 pos, Vec3s24 rot, Vec3s24 size, Camera_t
 void computeCamData(Camera_t *cam) {
     computeCamMatrix(&cam->matrix, -cam->rot.x, -cam->rot.y, -cam->rot.z);
     cam->focal = to_fixed16(1.0f / tanf(from_fixed24(cam->fov) * 0.5f));
+    cam->renderRadiusSq = cam->farPlane ? mul_24(cam->farPlane, cam->farPlane) : 0.0f;
 }

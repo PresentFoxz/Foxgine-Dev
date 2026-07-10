@@ -73,9 +73,30 @@ static inline void computeRotScaleMatrix(Mat3x3 *out, qFixed24x8_t angleX, qFixe
     out->x[2][2] = mul_16(mul_16(cosX, cosY), zs);
 }
 
+static inline void computeRotMatrix(Mat3x3 *out, qFixed24x8_t angleX, qFixed24x8_t angleY, qFixed24x8_t angleZ) {
+    qFixed16_t sinX = fsin(rad24_to_index(angleX));
+    qFixed16_t cosX = fcos(rad24_to_index(angleX));
+    qFixed16_t sinY = fsin(rad24_to_index(angleY));
+    qFixed16_t cosY = fcos(rad24_to_index(angleY));
+    qFixed16_t sinZ = fsin(rad24_to_index(angleZ));
+    qFixed16_t cosZ = fcos(rad24_to_index(angleZ));
+
+    out->x[0][0] = mul_16(cosY, cosZ);
+    out->x[0][1] = -mul_16(cosY, sinZ);
+    out->x[0][2] = sinY;
+
+    out->x[1][0] = mul_16(sinX, mul_16(sinY, cosZ)) + mul_16(cosX, sinZ);
+    out->x[1][1] = -mul_16(sinX, mul_16(sinY, sinZ)) + mul_16(cosX, cosZ);
+    out->x[1][2] = -mul_16(sinX, cosY);
+
+    out->x[2][0] = -mul_16(cosX, mul_16(sinY, cosZ)) + mul_16(sinX, sinZ);
+    out->x[2][1] = mul_16(cosX, mul_16(sinY, sinZ)) + mul_16(sinX, cosZ);
+    out->x[2][2] = mul_16(cosX, cosY);
+}
+
 static inline void computeCamMatrix(Mat3x3 *out, qFixed24x8_t x, qFixed24x8_t y, qFixed24x8_t z) {
     Mat3x3 temp;
-    computeRotScaleMatrix(&temp, x, y, z, to_fixed24(1.0f), to_fixed24(1.0f), to_fixed24(1.0f));
+    computeRotMatrix(&temp, x, y, z);
     for(int i = 0; i < 3; i++) { for(int j = 0; j < 3; j++) { out->x[i][j] = temp.x[j][i]; } }
 }
 
