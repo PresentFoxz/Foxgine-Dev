@@ -8,7 +8,8 @@
 
 #include "mesh/allMeshes.h"
 
-Pixel_t *buffer;
+Pixel_t *mainBuffer;
+Pixel_t *screenBuffer;
 
 Camera_t cam;
 int interlace = 0;
@@ -16,27 +17,48 @@ int interlace = 0;
 EWRAM_BSS Mesh map;
 
 KeyInputs inputs = {0};
-// static void check_inputs() {
-//     SDL_PumpEvents();
-//     const Uint8 *keys = SDL_GetKeyboardState(NULL);
+static void check_inputs() {
+    u16 keys = ~REG_KEYINPUT;
 
-//     inputs.up = keys[SDL_SCANCODE_W];
-//     inputs.down = keys[SDL_SCANCODE_S];
-//     inputs.left = keys[SDL_SCANCODE_A];
-//     inputs.right = keys[SDL_SCANCODE_D];
+    inputs.up    = (keys & KEY_UP);
+    inputs.down  = (keys & KEY_DOWN);
+    inputs.left  = (keys & KEY_LEFT);
+    inputs.right = (keys & KEY_RIGHT);
 
-//     inputs.a = keys[SDL_SCANCODE_J];
-//     inputs.b = keys[SDL_SCANCODE_K];
-//     inputs.lb = keys[SDL_SCANCODE_U];
-//     inputs.rb = keys[SDL_SCANCODE_I];
-// }
+    inputs.a  = (keys & KEY_A);
+    inputs.b  = (keys & KEY_B);
+    inputs.lb = (keys & KEY_L);
+    inputs.rb = (keys & KEY_R);
+}
 
 static void init() {
     initTable();
-    buffer = malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(Pixel_t));
-    cam = (Camera_t){ .pos = (Vec3s24){0, 0, to_fixed24(-100.0f)}, .rot = (Vec3s24){0, 0, 0}, .fov = to_fixed24(60.0f), .nearPlane = to_fixed24(0.15f), .farPlane = to_fixed24(1000.0f) };
+    screenBuffer = malloc(MAIN_SCREEN_W * MAIN_SCREEN_H * sizeof(Pixel_t));
+    mainBuffer = malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
+    cam = (Camera_t){
+        .pos = (Vec3s24){to_fixed24(0.0f), to_fixed24(0.0f), to_fixed24(-2.0f)}, .rot = (Vec3s24){to_fixed24(0.0f), to_fixed24(0.0f), to_fixed24(0.0f)},
+        .fov = to_fixed24(90.0f), .nearPlane = to_fixed24(0.1f), .farPlane = to_fixed24(1000.0f)
+    };
 
     load_mesh(&map, Castle_verts, CASTLE_VERT, Castle_tris, CASTLE_TRI, Castle_colors);
+}
+
+static inline void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {
+    int yStep = (srcHeight << 16) / dstHeight;
+
+    int srcY = 0;
+    for (int y = 0; y < dstHeight; y++) {
+        int xStep = (srcWidth << 16) / dstWidth;
+        int srcX = 0;
+
+        Pixel_t *srcRow = src + ((srcY >> 16) * srcWidth);
+        Pixel_t *dstRow = dst + y * dstWidth;
+
+        for (int x = 0; x < dstWidth; x++) {
+            dstRow[x] = srcRow[srcX >> 16];
+            srcX += xStep;
+        } srcY += yStep;
+    }
 }
 
 int main() {
@@ -53,7 +75,7 @@ int main() {
         interlace ^= 1;
         clear_buf(color_to_pixel((Color_t){0, 0, 0, 255}));
 
-        // check_inputs();
+        check_inputs();
         move_camera(&cam, inputs);
         computeCamData(&cam);
 
@@ -61,7 +83,7 @@ int main() {
         draw_tris(cam);
 
         while(REG_VCOUNT >= 160);
-        memcpy(screenBuffer, buffer, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(Pixel_t));
+        scale_buffer(mainBuffer, SCREEN_W, SCREEN_H, screenBuffer, MAIN_SCREEN_W, MAIN_SCREEN_H);
     }
 
     return 0;

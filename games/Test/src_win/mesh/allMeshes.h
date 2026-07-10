@@ -3,5 +3,6 @@
 
 #include "Castle.h"
 #include "Chicken.h"
+#include "Cube.h"
 
 #endif

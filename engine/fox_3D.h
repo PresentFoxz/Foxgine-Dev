@@ -7,18 +7,16 @@
 #include "fox_library.h"
 #include "fox_fixed.h"
 
+#define FIXED24_EPSILON 1
 static inline Vec2i vert_to_screen(Vec3s24 v, qFixed16_t focal, qFixed24x8_t nearPlane) {
     Vec2i out;
 
-    if(v.z <= nearPlane) {
-        out.x = -999;
-        out.y = -999;
-        return out;
-    }
+    qFixed24x8_t z = v.z;
+    if (z < nearPlane + FIXED24_EPSILON) z = nearPlane + FIXED24_EPSILON;
 
     qFixed16_t xp = fixed24_to_16(v.x);
     qFixed16_t yp = fixed24_to_16(v.y);
-    qFixed16_t zp = fixed24_to_16(v.z);
+    qFixed16_t zp = fixed24_to_16(z);
 
     qFixed16_t x = project_div(xp, focal, zp);
     qFixed16_t y = project_div(yp, focal, zp);
@@ -84,9 +82,9 @@ static inline void computeCamMatrix(Mat3x3 *out, qFixed24x8_t x, qFixed24x8_t y,
 static inline Vec3s24 lerpVertex(Vec3s24 a, Vec3s24 b, qFixed24x8_t t) {
     Vec3s24 r;
 
-    r.x = mul_24(mul_24(a.x + t, (b.x - a.x)), to_fixed24(1.0f));
-    r.y = mul_24(mul_24(a.y + t, (b.y - a.y)), to_fixed24(1.0f));
-    r.z = mul_24(mul_24(a.z + t, (b.z - a.z)), to_fixed24(1.0f));
+    r.x = a.x + mul_24(b.x - a.x, t);
+    r.y = a.y + mul_24(b.y - a.y, t);
+    r.z = a.z + mul_24(b.z - a.z, t);
 
     return r;
 }
@@ -138,6 +136,9 @@ static inline int TriangleClipping(Vec3s24 verts[3], Triangle_t* outTri1, Triang
 
         cross0 = lerpVertex(verts[out0], verts[in0], t0);
         cross1 = lerpVertex(verts[out0], verts[in1], t1);
+
+        cross0.z = plane;
+        cross1.z = plane;
 
         *outTri1 = (Triangle_t){ .p0 = verts[in0], .p1 = verts[in1], .p2 = cross0 };
         *outTri2 = (Triangle_t){ .p0 = verts[in1], .p1 = cross1, .p2 = cross0 };

@@ -9,7 +9,8 @@ TARGET = build_win/game.exe
 SRC = \
 	src_win/main_win.c \
 	../../engine/fox_draw.c \
-	../../engine/fox_scene.c
+	../../engine/fox_scene.c \
+	../../engine/fox_mesh.c
 
 all:
 	mkdir -p build_win

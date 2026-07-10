@@ -15,7 +15,7 @@ Uint32 frameStart;
 Uint32 frameTime;
 
 Camera_t cam;
-Pixel_t *buffer = NULL;
+Pixel_t *mainBuffer = NULL;
 int interlace = 0;
 
 Mesh map;
@@ -50,10 +50,13 @@ static void run_game() {
 
 static void init() {
     initTable();
-    buffer = malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
-    cam = (Camera_t){ .pos = (Vec3s24){0, 0, to_fixed24(-100.0f)}, .rot = (Vec3s24){0, 0, 0}, .fov = to_fixed24(90.0f), .nearPlane = to_fixed24(0.1f), .farPlane = to_fixed24(1000.0f) };
+    mainBuffer = malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
+    cam = (Camera_t){
+        .pos = (Vec3s24){to_fixed24(0.0f), to_fixed24(0.0f), to_fixed24(-2.0f)}, .rot = (Vec3s24){to_fixed24(0.0f), to_fixed24(0.0f), to_fixed24(0.0f)},
+        .fov = to_fixed24(90.0f), .nearPlane = to_fixed24(0.1f), .farPlane = to_fixed24(1000.0f)
+    };
 
-    load_mesh(&map, Castle_verts, CASTLE_VERT, Castle_tris, CASTLE_TRI, Castle_colors);
+    load_mesh(&map, Cube_verts, CUBE_VERT, Cube_tris, CUBE_TRI, Cube_colors);
 }
 
 int main(int argc, char* argv[]) {
@@ -97,7 +100,7 @@ int main(int argc, char* argv[]) {
 
         run_game();
 
-        SDL_UpdateTexture(screenBlit, NULL, buffer, SCREEN_W * sizeof(Pixel_t));
+        SDL_UpdateTexture(screenBlit, NULL, mainBuffer, SCREEN_W * sizeof(Pixel_t));
         SDL_RenderCopy(renderer, screenBlit, NULL, NULL);
 
         SDL_RenderPresent(renderer);

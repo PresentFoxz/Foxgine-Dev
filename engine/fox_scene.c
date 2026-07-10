@@ -61,7 +61,7 @@ void renderTriangle(Triangle_t tri3D, Camera_t cam) {
     bool OOB = false;
 
     Vec2i triSpace[3];
-    Color_t col = tri3D.color;
+    Pixel_t col = tri3D.color;
     Vec3s24 triangle[3] = {(Vec3s24){tri3D.p0.x, tri3D.p0.y, tri3D.p0.z}, (Vec3s24){tri3D.p1.x, tri3D.p1.y, tri3D.p1.z}, (Vec3s24){tri3D.p2.x, tri3D.p2.y, tri3D.p2.z}};
 
     int output = TriangleClipping(triangle, &clipped[0], &clipped[1], cam.nearPlane, cam.farPlane);
@@ -79,7 +79,7 @@ void renderTriangle(Triangle_t tri3D, Camera_t cam) {
         } if (OOB) continue;
         
         TriRend_t triRender = (TriRend_t){ .p0 = triSpace[0], .p1 = triSpace[1], .p2 = triSpace[2] };
-        draw_tri_fixed(triRender, color_to_pixel(col));
+        draw_tri_fixed(triRender, col);
     }
 }
 
@@ -88,15 +88,12 @@ void draw_tris(Camera_t cam) {
 
     printf("render tris: %d\n", fullMesh.triCount);
 
-    if (fullMesh.triCount > 0) {
-        quickSortIndices(0, fullMesh.triCount - 1);
-        
-        for (int t=0; t < triDistAmt; t++) {
-            if (triDist[t].obj == O_Triangle) {
-                renderTriangle(fullMesh.tris[triDist[t].idx], cam);
-            } else if (triDist[t].obj == O_Object) {
-                continue;
-            }
+    quickSortIndices(0, fullMesh.triCount - 1);
+    for (int t=0; t < triDistAmt; t++) {
+        if (triDist[t].obj == O_Triangle) {
+            renderTriangle(fullMesh.tris[triDist[t].idx], cam);
+        } else if (triDist[t].obj == O_Object) {
+            continue;
         }
     }
 
@@ -115,7 +112,7 @@ void add_mesh_scene(Mesh model, Vec3s24 pos, Vec3s24 rot, Vec3s24 size, Camera_t
     int (*tris)[3] = model.tris;
     int vertCount = model.vertCount;
     Vec3s24 *verts = model.verts;
-    Color_t *color = model.colors;
+    Pixel_t *color = model.colors;
     Vec3s24 *normal = model.normal;
 
     Mat3x3 modelMat;

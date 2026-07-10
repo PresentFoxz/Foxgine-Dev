@@ -14,14 +14,14 @@ void draw_pixel(int x, int y, Pixel_t col) {
     if (y < 0 || y >= SCREEN_H) return;
     if (x < 0 || x >= SCREEN_W) return;
 
-    buffer[y * SCREEN_W + x] = col;
+    mainBuffer[y * SCREEN_W + x] = col;
 }
 
 void clear_buf(Pixel_t col) {
     for (int y=0; y < SCREEN_H; y++) {
         if ((y & 1) != interlace) continue;
 
-        Pixel_t *row = &buffer[y * SCREEN_W];
+        Pixel_t *row = &mainBuffer[y * SCREEN_W];
         for (int x=0; x < SCREEN_W; x++) { row[x] = col; }
     }
 }
@@ -30,7 +30,7 @@ void draw_rect(int x, int y, int w, int h, Pixel_t col) {
     for (int yy = y; yy < y + h; yy++) {
         if ((yy & 1) != interlace) continue;
 
-        Pixel_t *row = &buffer[yy * SCREEN_W + x];
+        Pixel_t *row = &mainBuffer[yy * SCREEN_W + x];
         for (int xx = x; xx < x + w; xx++) { row[xx] = col; }
     }
 }
@@ -48,7 +48,7 @@ static inline void draw_strip(int x1, int x2, int y, Pixel_t col) {
     if(x2 >= SCREEN_W) x2 = SCREEN_W - 1;
 
 
-    Pixel_t* dst = &buffer[y * SCREEN_W + x1];
+    Pixel_t* dst = &mainBuffer[y * SCREEN_W + x1];
     int count = x2 - x1 + 1;
     while(count--) { *dst++ = col; }
 }
