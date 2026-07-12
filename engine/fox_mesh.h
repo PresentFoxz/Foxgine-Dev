@@ -29,6 +29,8 @@ typedef struct {
 
 typedef struct {
     int a, b, c;
+    Pixel_t color;
+    Vec3s24 normal;
 } TriIndex;
 
 typedef struct {
@@ -36,13 +38,7 @@ typedef struct {
     int vertCount;
 
     TriIndex *tris;
-    Pixel_t *colors;
-    Vec3s24 *normal;
-
-    Vec3s24 *triCenters;
     int triCount;
-
-    qFixed24x8_t radius;
 } Mesh;
 
 typedef struct {

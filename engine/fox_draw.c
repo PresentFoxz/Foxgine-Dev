@@ -104,24 +104,21 @@ void draw_tri_fixed(TriRend_t tri, Pixel_t col) {
     if(v2.y < v1.y){ temp=v1; v1=v2; v2=temp; }
 
 
-    qFixed16_t dy02 = to_fixed16(v2.y - v0.y);
+    int dy02 = v2.y - v0.y;
     if(dy02 <= 0) return;
 
-    qFixed16_t dy01 = to_fixed16(v1.y - v0.y);
-    qFixed16_t dy12 = to_fixed16(v2.y - v1.y);
+    int dy01 = v1.y - v0.y;
+    int dy12 = v2.y - v1.y;
     
-    int cross = (v1.x - v0.x) * (v2.y - v0.y) - (v1.y - v0.y) * (v2.x - v0.x);
+    int cross = (v1.x - v0.x) * dy02 - dy01 * (v2.x - v0.x);
     bool middleLeft = (cross > 0);
-    
-    qFixed16_t dxLong = div_16(((v2.x - v0.x) << FIXED16_SHIFT), dy02);
-    qFixed16_t dxTop = 0;
-    qFixed16_t dxBottom = 0;
 
-    if(dy01) dxTop = div_16(((v1.x - v0.x) << FIXED16_SHIFT), dy01);
-    if(dy12) dxBottom = div_16(((v2.x - v1.x) << FIXED16_SHIFT), dy12);
+    qFixed16_t dxLong = div_16(((v2.x - v0.x) << FIXED16_SHIFT), to_fixed16(dy02));
+    qFixed16_t dxTop = dy01 ? div_16(((v1.x - v0.x) << FIXED16_SHIFT), to_fixed16(dy01)) : 0;
+    qFixed16_t dxBottom = dy12 ? div_16(((v2.x - v1.x) << FIXED16_SHIFT), to_fixed16(dy12)) : 0;
 
-    int xLong  = fixed_from_int(v0.x);
-    int xShort = fixed_from_int(v0.x);
+    int xLong  = to_fixed16(v0.x);
+    int xShort = to_fixed16(v0.x);
 
     int y;
     for(y=v0.y; y<v1.y; y++) {
@@ -143,7 +140,7 @@ void draw_tri_fixed(TriRend_t tri, Pixel_t col) {
         xShort += dxTop;
     }
     
-    xShort = fixed_from_int(v1.x);
+    xShort = to_fixed16(v1.x);
     for(; y<=v2.y; y++) {
         if((y & 1) == interlace) {
             int left;

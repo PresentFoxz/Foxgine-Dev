@@ -10,7 +10,8 @@ SRC = \
 	src_win/main_win.c \
 	../../engine/fox_draw.c \
 	../../engine/fox_scene.c \
-	../../engine/fox_mesh.c
+	../../engine/fox_mesh.c \
+	../../engine/fox_3D.c
 
 all:
 	mkdir -p build_win

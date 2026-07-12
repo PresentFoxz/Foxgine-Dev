@@ -28,11 +28,9 @@ static Vec3f computeNormal(Vec3f tri[3]) {
 
 void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const int (*tris)[3], int triCount, const Color_t *colors) {
     meshModel->verts = malloc(sizeof(Vec3s24) * vertCount);
-    meshModel->tris = malloc(sizeof(int[3]) * triCount);
-    meshModel->colors = malloc(sizeof(Pixel_t) * triCount);
-    meshModel->normal = malloc(sizeof(Vec3s24) * triCount);
+    meshModel->tris = malloc(sizeof(TriIndex) * triCount);
 
-    if (!meshModel->verts || !meshModel->tris || !meshModel->colors || !meshModel->normal) {
+    if (!meshModel->verts || !meshModel->tris) {
         printf("Mesh malloc failed\n");
         return;
     }
@@ -48,11 +46,11 @@ void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const int (*t
         meshModel->tris[i].c = tris[i][2];
 
         #ifdef PLATFORM_WIN
-        meshModel->colors[i] = color_to_pixel(colors[i]);
+        meshModel->tris[i].color = color_to_pixel(colors[i]);
         #elif defined(PLATFORM_GBA)
         int colorIndex = color_to_index(colors[i]);
-        if (colorIndex != -1) meshModel->colors[i] = colorIndex;
-        else meshModel->colors[i] = 1;
+        if (colorIndex != -1) meshModel->tris[i].color = colorIndex;
+        else meshModel->tris[i].color = 1;
 
         printf("Color Index: %d | ", colorIndex);
         #endif
@@ -64,7 +62,7 @@ void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const int (*t
         };
 
         Vec3f norm = computeNormal(face);
-        meshModel->normal[i] = (Vec3s24){to_fixed24(norm.x), to_fixed24(norm.y), to_fixed24(norm.z)};
+        meshModel->tris[i].normal = (Vec3s24){to_fixed24(norm.x), to_fixed24(norm.y), to_fixed24(norm.z)};
     }
     printf("\n");
 }

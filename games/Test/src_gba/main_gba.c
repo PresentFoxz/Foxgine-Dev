@@ -35,13 +35,15 @@ static void check_inputs() {
 
 static void init() {
     initTable();
+    initFocalTable();
     for (int p=0; p < PALETTE_COUNT; p++){ add_palette(palettes[p]); }
 
     screenBuffer = malloc(MAIN_SCREEN_W * MAIN_SCREEN_H * sizeof(Pixel_t));
     mainBuffer = malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
+
     cam = (Camera_t){
         .pos = (Vec3s24){to_fixed24(0.0f), to_fixed24(0.0f), to_fixed24(-2.0f)}, .rot = (Vec3s24){to_fixed24(0.0f), to_fixed24(0.0f), to_fixed24(0.0f)},
-        .fov = to_fixed24(90.0f), .nearPlane = to_fixed24(0.1f), .farPlane = to_fixed24(1000.0f)
+        .fov = to_fixed24(90.0f), .nearPlane = to_fixed24(0.1f), .farPlane = to_fixed24(30.0f)
     };
 
     bgColor = color_to_index((Color_t){0, 0, 0, 255});

@@ -9,6 +9,8 @@
 #define FULL_MESH_TRIS 1000
 const qFixed24x8_t one_third = 85;
 qFixed16_t sinTable[ANGLE_COUNT];
+qFixed16_t cosTable[ANGLE_COUNT];
+qFixed16_t focalTable[ANGLE_COUNT];
 
 #ifdef PLATFORM_WIN
 static RendMesh fullMesh;
@@ -115,17 +117,6 @@ void add_mesh_scene(Mesh model, Vec3s24 pos, Vec3s24 rot, Vec3s24 size, Camera_t
         matRotated = true;
     }
 
-    for(int i = 0; i < model.triCount; i++) {
-        qFixed24x8_t len = sqrtf(mul_24(model.normal[i].x, model.normal[i].x) + mul_24(model.normal[i].y, model.normal[i].y) + mul_24(model.normal[i].z, model.normal[i].z));
-        qFixed24x8_t one_over_len = (len > 0) ? div_24(FIXED_ONE24x8, len) : 0;
-        
-        if(len > 0) {
-            model.normal[i].x = mul_24(model.normal[i].x, one_over_len);
-            model.normal[i].y = mul_24(model.normal[i].y, one_over_len);
-            model.normal[i].z = mul_24(model.normal[i].z, one_over_len);
-        }
-    }
-
     bool triFacing = false;
     for (int t = 0; t < model.triCount; t++) {
         if (fullMesh.triCount >= FULL_MESH_TRIS) return;
@@ -151,18 +142,16 @@ void add_mesh_scene(Mesh model, Vec3s24 pos, Vec3s24 rot, Vec3s24 size, Camera_t
         Vec3s24 center = {mul_24(sumX, one_third), mul_24(sumY, one_third), mul_24(sumZ, one_third)};
         Vec3s24 fVect = {center.x - cam.pos.x, center.y - cam.pos.y, center.z - cam.pos.z};
 
-        qFixed24x8_t dot = mul_24(model.normal[t].x, fVect.x) + mul_24(model.normal[t].y, fVect.y) + mul_24(model.normal[t].z, fVect.z);
-        triFacing = (dot < 0) ? true : false;
-        if (!triFacing) continue;
+        qFixed24x8_t dot = mul_24(tri.normal.x, fVect.x) + mul_24(tri.normal.y, fVect.y) + mul_24(tri.normal.z, fVect.z);
+        if (!(dot < 0)/* && model.bfc[t]*/) continue;
         if (triStore[0].z < cam.nearPlane && triStore[1].z < cam.nearPlane && triStore[2].z < cam.nearPlane) continue;
 
-        Vec3s24 distVect = {center.x - cam.pos.x, center.y - cam.pos.y, center.z - cam.pos.z};
-        qFixed24x8_t dist = mul_24(distVect.x, distVect.x) + mul_24(distVect.y, distVect.y) + mul_24(distVect.z, distVect.z);
+        qFixed24x8_t dist = mul_24(fVect.x, fVect.x) + mul_24(fVect.y, fVect.y) + mul_24(fVect.z, fVect.z);
         if (cam.farPlane && dist > cam.renderRadiusSq) continue;
 
         triDist[fullMesh.triCount] = (ObjectOrdering){ .idx = fullMesh.triCount, .obj = O_Triangle, .dist = dist };
 
-        fullMesh.tris[fullMesh.triCount] = (Triangle_t){ .p0 = triStore[0], .p1 = triStore[1], .p2 = triStore[2], .color = model.colors[t] };
+        fullMesh.tris[fullMesh.triCount] = (Triangle_t){ .p0 = triStore[0], .p1 = triStore[1], .p2 = triStore[2], .color = tri.color };
 
         fullMesh.triCount++;
         triDistAmt++;
@@ -171,6 +160,6 @@ void add_mesh_scene(Mesh model, Vec3s24 pos, Vec3s24 rot, Vec3s24 size, Camera_t
 
 void computeCamData(Camera_t *cam) {
     computeCamMatrix(&cam->matrix, -cam->rot.x, -cam->rot.y, -cam->rot.z);
-    cam->focal = to_fixed16(1.0f / tanf(from_fixed24(cam->fov) * 0.5f));
+    cam->focal = focalTable[rad24_to_index(cam->fov)];
     cam->renderRadiusSq = cam->farPlane ? mul_24(cam->farPlane, cam->farPlane) : 0.0f;
 }
