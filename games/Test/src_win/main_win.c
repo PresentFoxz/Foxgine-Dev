@@ -62,7 +62,7 @@ static void run_game() {
     move_camera(&cam, inputs, crankRotation);
     computeCamData(&cam);
 
-    add_mesh_scene(map, (Vec3f){0, 0, 0}, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f}, cam);
+    add_mesh_scene(map, (Vec3f){0, 0, 0}, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f}, cam, true);
     draw_tris(cam);
 }
 

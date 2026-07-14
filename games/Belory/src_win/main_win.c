@@ -68,11 +68,15 @@ static void run_game() {
 
     // add_mesh_scene(blockTypes[0], (Vec3f){0, 0, 0}, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f}, cam, false);
     for (int i=0; i < CHUNK_AMT; i++) {
-        add_mesh_scene(chunkMesh[i], (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z}, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f}, cam, false);
+        add_mesh_scene(
+            chunkMesh[i], 
+            (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z},
+            (Vec3f){0, 0, 0},
+            (Vec3f){1.0f, 1.0f, 1.0f},
+            cam, false
+        );
     }
     draw_tris(cam);
-
-    printf("Player Pos: [ %f | %f | %f ]\n", cam.pos.x, cam.pos.y, cam.pos.z);
 }
 
 static void init() {
