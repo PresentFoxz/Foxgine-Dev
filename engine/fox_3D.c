@@ -1,77 +1,63 @@
 #include "fox_3D.h"
-#include "fox_fixed.h"
 
-#define FIXED24_EPSILON 1
-Vec2i vert_to_screen(Vec3s24 v, qFixed16_t focal, qFixed24x8_t nearPlane) {
+#define EPSILON 1
+Vec2i vert_to_screen(Vec3f v, float focal, float nearPlane) {
     Vec2i out;
 
-    qFixed24x8_t z = v.z;
-    if (z < nearPlane + FIXED24_EPSILON) z = nearPlane + FIXED24_EPSILON;
+    float z = v.z;
+    if (z < nearPlane + EPSILON) z = nearPlane + EPSILON;
 
-    qFixed16_t xp = fixed24_to_16(v.x);
-    qFixed16_t yp = fixed24_to_16(v.y);
-    qFixed16_t zp = fixed24_to_16(z);
+    float x = (v.x * focal) / z;
+    float y = (v.y * focal) / z;
 
-    qFixed16_t x = project_div(xp, focal, zp);
-    qFixed16_t y = project_div(yp, focal, zp);
-
-    int64_t sx = ((int64_t)x + FIXED_ONE16) * SCREEN_W;
-    int64_t sy = ((int64_t)FIXED_ONE16 - y) * SCREEN_H;
-
-    out.x = (int)(sx >> 17);
-    out.y = (int)(sy >> 17);
+    out.x = (int)((x + 1.0f) * (SCREEN_W * 0.5f));
+    out.y = (int)((1.0f - y) * (SCREEN_H * 0.5f));
 
     return out;
 }
 
-qFixed24x8_t dot24_16(qFixed24x8_t x, qFixed24x8_t y, qFixed24x8_t z, qFixed16_t mx, qFixed16_t my, qFixed16_t mz) {
-    int64_t acc = (int64_t)x * mx + (int64_t)y * my + (int64_t)z * mz;
-    return (qFixed24x8_t)(acc >> 16);
+float dot(float x, float y, float z, float mx, float my, float mz) { return x * mx + y * my + z * mz; }
+
+void rotateVertex(Vec3f v, Mat3x3 *m, Vec3f* out) {
+    out->x = dot(v.x, v.y, v.z, m->x[0][0], m->x[0][1], m->x[0][2]);
+    out->y = dot(v.x, v.y, v.z, m->x[1][0], m->x[1][1], m->x[1][2]);
+    out->z = dot(v.x, v.y, v.z, m->x[2][0], m->x[2][1], m->x[2][2]);
 }
 
-void rotateVertex(Vec3s24 v, Mat3x3 *m, Vec3s24* out) {
-    out->x = dot24_16(v.x, v.y, v.z, m->x[0][0], m->x[0][1], m->x[0][2]);
-    out->y = dot24_16(v.x, v.y, v.z, m->x[1][0], m->x[1][1], m->x[1][2]);
-    out->z = dot24_16(v.x, v.y, v.z, m->x[2][0], m->x[2][1], m->x[2][2]);
+void rotateVertexInPlace(Vec3f* v, Vec3f camPos, Mat3x3* m) {
+    float x = v->x - camPos.x;
+    float y = v->y - camPos.y;
+    float z = v->z - camPos.z;
+
+    v->x = dot(x, y, z, m->x[0][0], m->x[1][0], m->x[2][0]);
+    v->y = dot(x, y, z, m->x[0][1], m->x[1][1], m->x[2][1]);
+    v->z = dot(x, y, z, m->x[0][2], m->x[1][2], m->x[2][2]);
 }
 
-void rotateVertexInPlace(Vec3s24* v, Vec3s24 camPos, Mat3x3* m) {
-    qFixed24x8_t x = v->x - camPos.x;
-    qFixed24x8_t y = v->y - camPos.y;
-    qFixed24x8_t z = v->z - camPos.z;
+Vec3f lerpVertex(Vec3f a, Vec3f b, float t) {
+    Vec3f r;
 
-    v->x = dot24_16(x, y, z, m->x[0][0], m->x[1][0], m->x[2][0]);
-    v->y = dot24_16(x, y, z, m->x[0][1], m->x[1][1], m->x[2][1]);
-    v->z = dot24_16(x, y, z, m->x[0][2], m->x[1][2], m->x[2][2]);
-}
-
-Vec3s24 lerpVertex(Vec3s24 a, Vec3s24 b, qFixed24x8_t t) {
-    Vec3s24 r;
-
-    r.x = a.x + mul_24(b.x - a.x, t);
-    r.y = a.y + mul_24(b.y - a.y, t);
-    r.z = a.z + mul_24(b.z - a.z, t);
+    r.x = a.x + (b.x - a.x) * t;
+    r.y = a.y + (b.y - a.y) * t;
+    r.z = a.z + (b.z - a.z) * t;
 
     return r;
 }
 
-int TriangleClipping(Vec3s24 verts[3], Triangle_t* outTri1, Triangle_t* outTri2, qFixed24x8_t nearPlane, qFixed24x8_t farPlane) {
+int TriangleClipping(Vec3f verts[3], Triangle_t* outTri1, Triangle_t* outTri2, float nearPlane, float farPlane) {
     int inScreen[3], outScreen[3];
     int inAmt = 0, outAmt = 0;
 
-    for (int i = 0; i < 3; i++) {
-        if (verts[i].z >= nearPlane && verts[i].z <= farPlane) {
-            inScreen[inAmt++] = i;
-        } else {
-            outScreen[outAmt++] = i;
-        }
+    for (int i = 0; i < 3; i++)  {
+        if (verts[i].z >= nearPlane && verts[i].z <= farPlane) { inScreen[inAmt++] = i; }
+        else { outScreen[outAmt++] = i; }
     }
 
-    Vec3s24 cross0, cross1;
+    Vec3f cross0, cross1;
 
     if (inAmt == 0) return 0;
     if (inAmt == 3) {
-        *outTri1 = (Triangle_t){verts[0], verts[1], verts[2]};
+        *outTri1 = (Triangle_t){ verts[0], verts[1], verts[2] };
         return 1;
     }
 
@@ -81,24 +67,28 @@ int TriangleClipping(Vec3s24 verts[3], Triangle_t* outTri1, Triangle_t* outTri2,
     int out1 = outScreen[1];
 
     if (inAmt == 1) {
-        qFixed24x8_t plane0 = (verts[out0].z < nearPlane) ? nearPlane : farPlane;
-        qFixed24x8_t plane1 = (verts[out1].z < nearPlane) ? nearPlane : farPlane;
+        float plane0 = (verts[out0].z < nearPlane) ? nearPlane : farPlane;
+        float plane1 = (verts[out1].z < nearPlane) ? nearPlane : farPlane;
 
-        qFixed24x8_t t0 = div_24(plane0 - verts[out0].z, verts[in0].z - verts[out0].z);
-        qFixed24x8_t t1 = div_24(plane1 - verts[out1].z, verts[in0].z - verts[out1].z);
+        float t0 = (plane0 - verts[out0].z) / (verts[in0].z - verts[out0].z);
+        float t1 = (plane1 - verts[out1].z) / (verts[in0].z - verts[out1].z);
 
         cross0 = lerpVertex(verts[out0], verts[in0], t0);
         cross1 = lerpVertex(verts[out1], verts[in0], t1);
 
-        *outTri1 = (Triangle_t){ .p0 = verts[in0], .p1 = cross0, .p2 = cross1};
+        cross0.z = plane0;
+        cross1.z = plane1;
+
+        *outTri1 = (Triangle_t) { verts[in0], cross0, cross1 };
+
         return 1;
     }
-    
-    if (inAmt == 2) {
-        qFixed24x8_t plane = (verts[out0].z < nearPlane) ? nearPlane : farPlane;
 
-        qFixed24x8_t t0 = div_24(plane - verts[out0].z, verts[in0].z - verts[out0].z);
-        qFixed24x8_t t1 = div_24(plane - verts[out0].z, verts[in1].z - verts[out0].z);
+    if (inAmt == 2) {
+        float plane = (verts[out0].z < nearPlane) ? nearPlane : farPlane;
+
+        float t0 = (plane - verts[out0].z) / (verts[in0].z - verts[out0].z);
+        float t1 = (plane - verts[out0].z) / (verts[in1].z - verts[out0].z);
 
         cross0 = lerpVertex(verts[out0], verts[in0], t0);
         cross1 = lerpVertex(verts[out0], verts[in1], t1);
@@ -106,56 +96,53 @@ int TriangleClipping(Vec3s24 verts[3], Triangle_t* outTri1, Triangle_t* outTri2,
         cross0.z = plane;
         cross1.z = plane;
 
-        *outTri1 = (Triangle_t){ .p0 = verts[in0], .p1 = verts[in1], .p2 = cross0 };
-        *outTri2 = (Triangle_t){ .p0 = verts[in1], .p1 = cross1, .p2 = cross0 };
+        *outTri1 = (Triangle_t) { verts[in0], verts[in1], cross0 };
+        *outTri2 = (Triangle_t) { verts[in1], cross1, cross0 };
+
         return 2;
     }
 
     return 0;
 }
 
-void computeCamMatrix(Mat3x3 *out, qFixed24x8_t x, qFixed24x8_t y, qFixed24x8_t z) {
+void computeCamMatrix(Mat3x3 *out, float x, float y, float z) {
     Mat3x3 temp;
     computeRotMatrix(&temp, x, y, z);
     for(int i = 0; i < 3; i++) { for(int j = 0; j < 3; j++) { out->x[i][j] = temp.x[j][i]; } }
 }
 
-void computeRotMatrix(Mat3x3 *out, qFixed24x8_t angleX, qFixed24x8_t angleY, qFixed24x8_t angleZ) {
-    qFixed16_t sinX = sinTable[rad24_to_index(angleX)], cosX = cosTable[rad24_to_index(angleX)];
-    qFixed16_t sinY = sinTable[rad24_to_index(angleY)], cosY = cosTable[rad24_to_index(angleY)];
-    qFixed16_t sinZ = sinTable[rad24_to_index(angleZ)], cosZ = cosTable[rad24_to_index(angleZ)];
+void computeRotMatrix(Mat3x3 *out, float angleX, float angleY, float angleZ) {
+    float sinX = sinf(angleX), cosX = cosf(angleX);
+    float sinY = sinf(angleY), cosY = cosf(angleY);
+    float sinZ = sinf(angleZ), cosZ = cosf(angleZ);
 
-    out->x[0][0] = mul_16(cosY, cosZ);
-    out->x[0][1] = -mul_16(cosY, sinZ);
+    out->x[0][0] = cosY * cosZ;
+    out->x[0][1] = -cosY * sinZ;
     out->x[0][2] = sinY;
 
-    out->x[1][0] = mul_16(sinX, mul_16(sinY, cosZ)) + mul_16(cosX, sinZ);
-    out->x[1][1] = -mul_16(sinX, mul_16(sinY, sinZ)) + mul_16(cosX, cosZ);
-    out->x[1][2] = -mul_16(sinX, cosY);
+    out->x[1][0] = sinX * sinY * cosZ + cosX * sinZ;
+    out->x[1][1] = -sinX * sinY * sinZ + cosX * cosZ;
+    out->x[1][2] = -sinX * cosY;
 
-    out->x[2][0] = -mul_16(cosX, mul_16(sinY, cosZ)) + mul_16(sinX, sinZ);
-    out->x[2][1] = mul_16(cosX, mul_16(sinY, sinZ)) + mul_16(sinX, cosZ);
-    out->x[2][2] = mul_16(cosX, cosY);
+    out->x[2][0] = -cosX * sinY * cosZ + sinX * sinZ;
+    out->x[2][1] = cosX * sinY * sinZ + sinX * cosZ;
+    out->x[2][2] = cosX * cosY;
 }
 
-void computeRotScaleMatrix(Mat3x3 *out, qFixed24x8_t angleX, qFixed24x8_t angleY, qFixed24x8_t angleZ, qFixed24x8_t sx, qFixed24x8_t sy, qFixed24x8_t sz) {
-    qFixed16_t sinX = sinTable[rad24_to_index(angleX)], cosX = cosTable[rad24_to_index(angleX)];
-    qFixed16_t sinY = sinTable[rad24_to_index(angleY)], cosY = cosTable[rad24_to_index(angleY)];
-    qFixed16_t sinZ = sinTable[rad24_to_index(angleZ)], cosZ = cosTable[rad24_to_index(angleZ)];
+void computeRotScaleMatrix(Mat3x3 *out, float angleX, float angleY, float angleZ, float sx, float sy, float sz) {
+    float sinX = sinf(angleX), cosX = cosf(angleX);
+    float sinY = sinf(angleY), cosY = cosf(angleY);
+    float sinZ = sinf(angleZ), cosZ = cosf(angleZ);
 
-    qFixed16_t xs = fixed24_to_16(sx);
-    qFixed16_t ys = fixed24_to_16(sy);
-    qFixed16_t zs = fixed24_to_16(sz);
+    out->x[0][0] = (cosY * cosZ) * sx;
+    out->x[0][1] = (-cosY * sinZ) * sx;
+    out->x[0][2] = sinY * sx;
 
-    out->x[0][0] = mul_16(mul_16(cosY, cosZ), xs);
-    out->x[0][1] = mul_16(mul_16(-cosY, sinZ), xs);
-    out->x[0][2] = mul_16(sinY, xs);
+    out->x[1][0] = (sinX * sinY * cosZ + cosX * sinZ) * sy;
+    out->x[1][1] = (-sinX * sinY * sinZ + cosX * cosZ) * sy;
+    out->x[1][2] = (-sinX * cosY) * sy;
 
-    out->x[1][0] = mul_16(mul_16(sinX, mul_16(sinY, cosZ)) + mul_16(cosX, sinZ), ys);
-    out->x[1][1] = mul_16(mul_16(-sinX, mul_16(sinY, sinZ)) + mul_16(cosX, cosZ), ys);
-    out->x[1][2] = mul_16(mul_16(-sinX, cosY), ys);
-
-    out->x[2][0] = mul_16(mul_16(-cosX, mul_16(sinY, cosZ)) + mul_16(sinX, sinZ), zs);
-    out->x[2][1] = mul_16(mul_16(cosX, mul_16(sinY, sinZ)) + mul_16(sinX, cosZ), zs);
-    out->x[2][2] = mul_16(mul_16(cosX, cosY), zs);
+    out->x[2][0] = (-cosX * sinY * cosZ + sinX * sinZ) * sz;
+    out->x[2][1] = (cosX * sinY * sinZ + sinX * cosZ) * sz;
+    out->x[2][2] = (cosX * cosY) * sz;
 }

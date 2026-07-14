@@ -26,43 +26,75 @@ static Vec3f computeNormal(Vec3f tri[3]) {
     return normal;
 }
 
-void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const int (*tris)[3], int triCount, const Color_t *colors) {
-    meshModel->verts = malloc(sizeof(Vec3s24) * vertCount);
-    meshModel->tris = malloc(sizeof(TriIndex) * triCount);
-
-    if (!meshModel->verts || !meshModel->tris) {
-        printf("Mesh malloc failed\n");
+void load_mesh(Mesh *meshModel, char *filename) {
+    FILE *file = fopen(filename, "r");
+    if(!file) {
+        printf("Failed to open %s\n", filename);
         return;
     }
 
-    meshModel->vertCount = vertCount;
-    meshModel->triCount = triCount;
+    int verts = 0;
+    int tris = 0;
 
-    for(int i = 0; i < vertCount; i++) { meshModel->verts[i] = (Vec3s24){to_fixed24(verts[i].x), to_fixed24(verts[i].y), to_fixed24(verts[i].z)}; }
-
-    for(int i = 0; i < triCount; i++) {
-        meshModel->tris[i].a = tris[i][0];
-        meshModel->tris[i].b = tris[i][1];
-        meshModel->tris[i].c = tris[i][2];
-
-        #ifdef PLATFORM_WIN
-        meshModel->tris[i].color = color_to_pixel(colors[i]);
-        #elif defined(PLATFORM_GBA)
-        int colorIndex = color_to_index(colors[i]);
-        if (colorIndex != -1) meshModel->tris[i].color = colorIndex;
-        else meshModel->tris[i].color = 1;
-
-        printf("Color Index: %d | ", colorIndex);
-        #endif
-
-        Vec3f face[3] = {
-            {from_fixed24(meshModel->verts[tris[i][0]].x), from_fixed24(meshModel->verts[tris[i][0]].y), from_fixed24(meshModel->verts[tris[i][0]].z)},
-            {from_fixed24(meshModel->verts[tris[i][1]].x), from_fixed24(meshModel->verts[tris[i][1]].y), from_fixed24(meshModel->verts[tris[i][1]].z)},
-            {from_fixed24(meshModel->verts[tris[i][2]].x), from_fixed24(meshModel->verts[tris[i][2]].y), from_fixed24(meshModel->verts[tris[i][2]].z)}
-        };
-
-        Vec3f norm = computeNormal(face);
-        meshModel->tris[i].normal = (Vec3s24){to_fixed24(norm.x), to_fixed24(norm.y), to_fixed24(norm.z)};
+    char line[128];
+    while(fgets(line, sizeof(line), file)) {
+        if(line[0] == 'v') verts++;
+        if(line[0] == 'f') tris++;
     }
-    printf("\n");
+
+    rewind(file);
+
+    meshModel->vertCount = verts;
+    meshModel->triCount = tris;
+
+    meshModel->verts = malloc(sizeof(Vec3f) * verts);
+    meshModel->tris = malloc(sizeof(TriIndex) * tris);
+
+    int vi = 0;
+    int ti = 0;
+    while(fgets(line, sizeof(line), file)) {
+        if(line[0] == 'v') {
+            float x,y,z;
+            sscanf(line, "v %f %f %f", &x, &y, &z);
+            meshModel->verts[vi++] = (Vec3f){x, y, z};
+        }
+
+
+        else if(line[0] == 'f') {
+            int a,b,c;
+            int color;
+
+            sscanf(line, "f %d %d %d %d", &a, &b, &c, &color);
+
+            meshModel->tris[ti].a = a;
+            meshModel->tris[ti].b = b;
+            meshModel->tris[ti].c = c;
+
+            meshModel->tris[ti].color = color_to_pixel(color);
+
+
+            Vec3f face[3] = { meshModel->verts[a], meshModel->verts[b], meshModel->verts[c] };
+            meshModel->tris[ti].normal = computeNormal(face);
+            
+            float e1x = face[0].x - face[1].x;
+            float e1y = face[0].y - face[1].y;
+            float e1z = face[0].z - face[1].z;
+
+            float e2x = face[1].x - face[2].x;
+            float e2y = face[1].y - face[2].y;
+            float e2z = face[1].z - face[2].z;
+
+            float e3x = face[2].x - face[0].x;
+            float e3y = face[2].y - face[0].y;
+            float e3z = face[2].z - face[0].z;
+
+            float edge1 = e1x*e1x + e1y*e1y + e1z*e1z;
+            float edge2 = e2x*e2x + e2y*e2y + e2z*e2z;
+            float edge3 = e3x*e3x + e3y*e3y + e3z*e3z;
+
+            float biggestEdge = fmaxf(edge1, fmaxf(edge2, edge3));
+            meshModel->tris[ti].size = (biggestEdge > 4.0f);
+            ti++;
+        }
+    } fclose(file);
 }

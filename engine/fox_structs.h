@@ -3,10 +3,6 @@
 
 #include <stdint.h>
 
-typedef int64_t qFixed32_t;
-typedef int32_t qFixed16_t;
-typedef int32_t qFixed24x8_t;
-
 typedef struct {
     float x, y;
 } Vec2f;
@@ -20,27 +16,11 @@ typedef struct {
 } Vec2i;
 
 typedef struct {
-    float x, y, z;
+    int x, y, z;
 } Vec3i;
 
 typedef struct {
-    qFixed24x8_t x, y;
-} Vec2s24;
-
-typedef struct {
-    qFixed24x8_t x, y, z;
-} Vec3s24;
-
-typedef struct {
-    qFixed16_t x, y;
-} Vec2fs16;
-
-typedef struct {
-    qFixed16_t x, y, z;
-} Vec3s16;
-
-typedef struct {
-    qFixed16_t x[3][3];
+    float x[3][3];
 } Mat3x3;
 
 typedef struct {
@@ -49,13 +29,7 @@ typedef struct {
     int8_t *pixels;
 } Screen;
 
-typedef struct {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
-} Color_t;
-
+#ifdef PLATFORM_WIN
 typedef struct {
     bool up;
     bool down;
@@ -65,18 +39,28 @@ typedef struct {
     bool b;
     bool lb;
     bool rb;
+
+    bool just_up;
+    bool just_down;
+    bool just_left;
+    bool just_right;
+    bool just_a;
+    bool just_b;
+    bool just_lb;
+    bool just_rb;
 } KeyInputs;
+#endif
 
 typedef struct {
-    Vec3s24 pos;
-    Vec3s24 rot;
+    Vec3f pos;
+    Vec3f rot;
 
-    qFixed24x8_t fov, nearPlane, farPlane;
-    qFixed24x8_t renderRadiusSq;
-    qFixed16_t focal;
+    float fov, nearPlane, farPlane;
+    float renderRadiusSq;
+    float focal;
     Mat3x3 matrix;
 
-    bool camLock;
+    int prevCrank;
 } Camera_t;
 
 #endif

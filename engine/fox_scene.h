@@ -4,13 +4,9 @@
 #include "fox_structs.h"
 #include "fox_mesh.h"
 
-#ifdef PLATFORM_GBA
+#ifdef PLATFORM_WIN
 
-ARM void add_mesh_scene(Mesh model, Vec3s24 pos, Vec3s24 rot, Vec3s24 size, Camera_t cam);
-
-#else
-
-void add_mesh_scene(Mesh model, Vec3s24 pos, Vec3s24 rot, Vec3s24 size, Camera_t cam);
+void add_mesh_scene(Mesh model, Vec3f pos, Vec3f rot, Vec3f size, Camera_t cam, bool vertUse);
 
 #endif
 

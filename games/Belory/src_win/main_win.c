@@ -5,6 +5,7 @@
 #include "fox_draw.h"
 
 #include "objects/entities.h"
+#include "chunk_data/chunks.h"
 
 #define FPS 60
 #define FRAME_TIME (1000 / FPS)
@@ -21,7 +22,10 @@ bool canInterlace = true;
 
 int crankRotation = 0;
 
-Mesh map;
+Mesh *blockTypes;
+Mesh chunkMesh[CHUNK_AMT];
+Chunk_t chunkData[CHUNK_AMT];
+Vec3i chunkRadius[CHUNK_AMT];
 
 Pixel_t bgColor;
 KeyInputs inputs = {0};
@@ -62,21 +66,44 @@ static void run_game() {
     move_camera(&cam, inputs, crankRotation);
     computeCamData(&cam);
 
-    add_mesh_scene(map, (Vec3f){0, 0, 0}, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f}, cam);
+    // add_mesh_scene(blockTypes[0], (Vec3f){0, 0, 0}, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f}, cam, false);
+    for (int i=0; i < CHUNK_AMT; i++) {
+        add_mesh_scene(chunkMesh[i], (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z}, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f}, cam, false);
+    }
     draw_tris(cam);
+
+    printf("Player Pos: [ %f | %f | %f ]\n", cam.pos.x, cam.pos.y, cam.pos.z);
 }
 
 static void init() {
     screenBuffer = malloc(MAIN_SCREEN_W * MAIN_SCREEN_H * sizeof(Pixel_t));
     mainBuffer = malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
+    blockTypes = malloc(1 * sizeof(Mesh));
 
     cam = (Camera_t){
-        .pos = (Vec3f){0.0f, 0.0f, -2.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
+        .pos = (Vec3f){0.0f, 0.0f, 0.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
         .fov = 90.0f, .nearPlane = 0.001f, .farPlane = 1000.0f
     };
 
     bgColor = color_to_pixel(0);
-    load_mesh(&map, "mesh/Castle.fox");
+
+    load_mesh(&blockTypes[0], "mesh/Cube.fox");
+    
+    int index = 0;
+    for (int y=-CHUNK_YM; y <= CHUNK_YP; y++) {
+        for (int x=-CHUNK_XM; x <= CHUNK_XP; x++) {
+            for (int z=-CHUNK_ZM; z <= CHUNK_ZP; z++) {
+                chunkRadius[index++] = (Vec3i){x, y, z};
+            }
+        }
+    }
+
+    for (int i=0; i < CHUNK_AMT; i++) {
+        chunkData[i] = random_chunk_data(0, chunkRadius[i]);
+        if (chunkData[i].LOD == 1) continue;
+
+        chunkMesh[i] = mesh_create(chunkData[i], blockTypes);
+    }
 }
 
 static inline void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {

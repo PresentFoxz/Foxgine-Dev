@@ -9,13 +9,12 @@
 
 #include "fox_library.h"
 #include "fox_structs.h"
-#include "fox_fixed.h"
 
 #define TRI_LIMIT 1000
 #define VERT_LIMIT (TRI_LIMIT * 2)
 
 typedef struct {
-    Vec3s24 p0, p1, p2;
+    Vec3f p0, p1, p2;
     Pixel_t color;
 } Triangle_t;
 
@@ -30,16 +29,25 @@ typedef struct {
 typedef struct {
     int a, b, c;
     Pixel_t color;
-    Vec3s24 normal;
+    Vec3f normal;
+    bool size;
 } TriIndex;
 
 typedef struct {
-    Vec3s24 *verts;
-    int vertCount;
+    Vec3f *verts;
+    uint32_t vertCount;
 
     TriIndex *tris;
-    int triCount;
+    uint32_t triCount;
 } Mesh;
+
+typedef struct{
+    uint32_t magic;
+    uint16_t version;
+    uint16_t reserved;
+    uint32_t vertCount;
+    uint32_t triCount;
+} MeshHeader;
 
 typedef struct {
     Triangle_t *tris;
@@ -58,6 +66,6 @@ typedef struct {
     ObjectType obj;
 } ObjectOrdering;
 
-void load_mesh(Mesh *meshModel, const Vec3f *verts, int vertCount, const int (*tris)[3], int triCount, const Color_t *colors);
+void load_mesh(Mesh *meshModel, char *filename);
 
 #endif
