@@ -35,19 +35,18 @@ typedef struct {
     bool down;
     bool left;
     bool right;
-    bool a;
-    bool b;
-    bool lb;
-    bool rb;
+    bool jump;
+    bool crouch;
+
+    bool pause;
+    bool just_pause;
 
     bool just_up;
     bool just_down;
     bool just_left;
     bool just_right;
-    bool just_a;
-    bool just_b;
-    bool just_lb;
-    bool just_rb;
+    bool just_jump;
+    bool just_crouch;
 } KeyInputs;
 #endif
 

@@ -3,46 +3,59 @@
 
 #include "entities_structs.h"
 
-static void crank_adjust(KeyInputs inputs, int* crank) {
-    if (inputs.lb) *crank -= 1;
-    if (inputs.rb) *crank += 1;
+static Vec2i mouse_move(SDL_Window* window, bool menu) {
+    Vec2i newPos;
 
-    if (*crank > 359) *crank = 0;
-    if (*crank < 0) *crank = 359;
+    Uint32 buttons = SDL_GetMouseState(&newPos.x, &newPos.y);
+    if (!menu) {
+        int centerX = MAIN_SCREEN_W / 2;
+        int centerY = MAIN_SCREEN_H / 2;
+
+        Vec2i move = {
+            newPos.x - centerX,
+            newPos.y - centerY
+        };
+
+        SDL_WarpMouseInWindow(window, centerX, centerY);
+
+        return move;
+    }
+
+    return newPos;
 }
 
-static void move_camera(Camera_t *cam, KeyInputs inputs, int crank) {
+static void move_camera(Camera_t *cam, KeyInputs inputs, Vec2i mouse, bool menu, float dt) {
     float yaw = cam->rot.y;
-    float rotYaw = 0.05f;
-    float rotPitch = 0.05f;
-    float moveSpd = 0.2f;
+    float mouseSensitivity = 0.003f;
+    float moveSpd = 5.0f * dt;
 
-    int crankDelta = (crank - cam->prevCrank);
+    if (!menu) {
+        cam->rot.y += mouse.x * mouseSensitivity;
+        cam->rot.x += mouse.y * mouseSensitivity;
+    }
 
     if (inputs.up) {
         cam->pos.x += moveSpd * sin(yaw);
         cam->pos.z += moveSpd * cos(yaw);
-    }
-
-    if (inputs.down) {
+    } if (inputs.down) {
         cam->pos.x -= moveSpd * sin(yaw);
         cam->pos.z -= moveSpd * cos(yaw);
+    } if (inputs.left) {
+        cam->pos.x -= moveSpd * cos(yaw);
+        cam->pos.z += moveSpd * sin(yaw);
+    } if (inputs.right) {
+        cam->pos.x += moveSpd * cos(yaw);
+        cam->pos.z -= moveSpd * sin(yaw);
     }
 
-    if (crankDelta > 180) crankDelta -= 360;
-    if (crankDelta < -180) crankDelta += 360;
+    if (cam->rot.y < DEG2RAD(0.0f)) cam->rot.y += DEG2RAD(360.0f);
+    if (cam->rot.y > DEG2RAD(360.0f)) cam->rot.y -= DEG2RAD(0.0f);
 
-    if (inputs.left) { cam->rot.y -= rotYaw; }
-    if (inputs.right) { cam->rot.y += rotYaw; }
-    
-    cam->rot.x += DEG2RAD(crankDelta);
-    cam->prevCrank = crank;
+    if (cam->rot.x > DEG2RAD(90.0f)) cam->rot.x = DEG2RAD(90.0f); 
+    if (cam->rot.x < DEG2RAD(-90.0f)) cam->rot.x = DEG2RAD(-90.0f); 
 
-    if (cam->rot.x > DEG2RAD(90.0f)) cam->rot.x = DEG2RAD(90.0f);
-    if (cam->rot.x < DEG2RAD(-90.0f)) cam->rot.x = DEG2RAD(-90.0f);
-
-    if (inputs.a) { cam->pos.y -= moveSpd; }
-    if (inputs.b) { cam->pos.y += moveSpd; }
+    if (inputs.jump) { cam->pos.y += moveSpd; }
+    if (inputs.crouch) { cam->pos.y -= moveSpd; }
 }
 
 #endif

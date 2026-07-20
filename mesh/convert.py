@@ -41,7 +41,8 @@ def convert_obj(input_file, output_file):
                     indices[0],
                     indices[1],
                     indices[2],
-                    color
+                    color,
+                    0
                 ))
 
 
@@ -58,9 +59,9 @@ def convert_obj(input_file, output_file):
 
 
         # triangles
-        for a, b, c, color in triangles:
+        for a, b, c, color, bfc in triangles:
             out.write(
-                f"f {a} {b} {c} {color}\n"
+                f"f {a} {b} {c} {color} {bfc}\n"
             )
 
 

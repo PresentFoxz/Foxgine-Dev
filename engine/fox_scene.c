@@ -5,16 +5,20 @@
 #include <stdio.h>
 #include <math.h>
 
-int maxTriangles = 500000;
+static int maxTrianglesInScene = 0;
 const float one_third = 0.33333333f;
 
 static RendMesh fullMesh;
 static ObjectOrdering *triDist;
 static int triDistAmt = 0;
 
+void reset_triCount() { maxTrianglesInScene = 0; }
+void add_triCount(int size) { maxTrianglesInScene += size; }
+
 void alloc_mesh() {
-    fullMesh.tris = malloc(sizeof(Triangle_t) * maxTriangles);
-    triDist = malloc(sizeof(ObjectOrdering) * maxTriangles);
+    fullMesh.tris = fox_malloc(sizeof(Triangle_t) * maxTrianglesInScene);
+    triDist = fox_malloc(sizeof(ObjectOrdering) * maxTrianglesInScene);
+
     if (fullMesh.tris == NULL || triDist == NULL) {
         printf("Failed to allocate\n");
         fullMesh.triCount = 0;
@@ -24,30 +28,36 @@ void alloc_mesh() {
 
     fullMesh.triCount = 0;
     triDistAmt = 0;
+
+    #ifdef PLAYDATE_SDK
+    pd->system->logToConsole("Allocation complete!");
+    #else
+    printf("Allocation complete!");
+    #endif
 }
 
-static void quickSortIndices(int left, int right) {
+static void quickSortIndices(ObjectOrdering *triSort, int left, int right) {
     if (left >= right) return;
 
-    float pivot = triDist[(left + right) >> 1].dist;
+    float pivot = triSort[(left + right) >> 1].dist;
     int i = left;
     int j = right;
 
     while (i <= j) {
-        while (triDist[i].dist > pivot) i++;
-        while (triDist[j].dist < pivot) j--;
+        while (triSort[i].dist > pivot) i++;
+        while (triSort[j].dist < pivot) j--;
 
         if (i <= j) {
-            ObjectOrdering tmp = triDist[i];
-            triDist[i] = triDist[j];
-            triDist[j] = tmp;
+            ObjectOrdering tmp = triSort[i];
+            triSort[i] = triSort[j];
+            triSort[j] = tmp;
             i++;
             j--;
         }
     }
 
-    if (left < j) quickSortIndices(left, j);
-    if (i < right) quickSortIndices(i, right);
+    if (left < j) quickSortIndices(triSort, left, j);
+    if (i < right) quickSortIndices(triSort, i, right);
 }
 
 void renderTriangle(Triangle_t tri3D, Camera_t cam) {
@@ -80,7 +90,7 @@ void renderTriangle(Triangle_t tri3D, Camera_t cam) {
 void draw_tris(Camera_t cam) {
     if (fullMesh.tris == NULL || triDist == NULL) return;
 
-    quickSortIndices(0, fullMesh.triCount - 1);
+    quickSortIndices(triDist, 0, triDistAmt);
     for (int t=0; t < triDistAmt; t++) {
         if (triDist[t].obj == O_Triangle) {
             renderTriangle(fullMesh.tris[triDist[t].idx], cam);
@@ -93,30 +103,32 @@ void draw_tris(Camera_t cam) {
     triDistAmt = 0;
 }
 
-void add_mesh_scene(Mesh model, Vec3f pos, Vec3f rot, Vec3f size, Camera_t cam, bool vertUse) {
+void computeMatrixModel(Mesh *model, Vec3f rot, Vec3f size) {
+    model->rotated = false;
+    if (rot.x != 0 && rot.y != 0 && rot.z != 0) {
+        if (size.x == 1.0f && size.y == 1.0f && size.z == 1.0f) { computeRotMatrix(&model->matrix, rot.x, rot.y, rot.z); }
+        else { computeRotScaleMatrix(&model->matrix, rot.x, rot.y, rot.z, size.x, size.y, size.z); }
+
+        model->rotated = true;
+    }
+}
+
+void add_mesh_scene(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
     if (fullMesh.tris == NULL) return;
     if (triDist == NULL) return;
-    if (fullMesh.triCount >= maxTriangles) return;
-
-    Mat3x3 modelMat;
-    bool matRotated = false;
-    if (rot.x != 0 && rot.y != 0 && rot.z != 0) {
-        if (size.x == 1.0f && size.y == 1.0f && size.z == 1.0f) { computeRotMatrix(&modelMat, rot.x, rot.y, rot.z); }
-        else { computeRotScaleMatrix(&modelMat, rot.x, rot.y, rot.z, size.x, size.y, size.z); }
-
-        matRotated = true;
-    }
+    if (fullMesh.triCount >= maxTrianglesInScene) return;
 
     bool triFacing = false;
     for (int t = 0; t < model.triCount; t++) {
-        if (fullMesh.triCount >= maxTriangles) return;
+        if (fullMesh.triCount >= maxTrianglesInScene) return;
 
         Vec3f triStore[3];
         float sumX = 0, sumY = 0, sumZ = 0;
         TriIndex tri = model.tris[t];
         Vec3f verts[3] = {model.verts[tri.a], model.verts[tri.b], model.verts[tri.c]};
         for (int v = 0; v < 3; v++) {
-            if (matRotated) { rotateVertex(verts[v], &modelMat, &triStore[v]); } else { triStore[v] = verts[v]; }
+            if (model.rotated) { rotateVertex(verts[v], &model.matrix, &triStore[v]); }
+            else { triStore[v] = verts[v]; }
             
             triStore[v].x += pos.x;
             triStore[v].y += pos.y;
@@ -133,8 +145,9 @@ void add_mesh_scene(Mesh model, Vec3f pos, Vec3f rot, Vec3f size, Camera_t cam, 
         Vec3f fVect = {center.x - cam.pos.x, center.y - cam.pos.y, center.z - cam.pos.z};
 
         float dot = (tri.normal.x * fVect.x) + (tri.normal.y * fVect.y) + (tri.normal.z * fVect.z);
-        if (!(dot < 0)/* && model.bfc[t]*/) continue;
+        if (!(dot < 0) && tri.bfc) continue;
         if (triStore[0].z < cam.nearPlane && triStore[1].z < cam.nearPlane && triStore[2].z < cam.nearPlane) continue;
+
 
         float dist;
         if (vertUse) {

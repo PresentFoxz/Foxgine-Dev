@@ -17,13 +17,15 @@ Pixel_t *mainBuffer;
 Pixel_t *screenBuffer;
 int interlace = 0;
 int interlaceAmt = 1;
-bool canInterlace = true;
+bool canInterlace = false;
+bool pause = false;
 
-int crankRotation = 0;
+SDL_Window* window;
+Uint64 lastTime;
+float deltaTime;
 
 Mesh map;
 
-Pixel_t bgColor;
 KeyInputs inputs = {0};
 static KeyInputs prevInputs = {0};
 static void check_inputs() {
@@ -35,51 +37,51 @@ static void check_inputs() {
     inputs.left = keys[SDL_SCANCODE_A];
     inputs.right = keys[SDL_SCANCODE_D];
 
-    inputs.a = keys[SDL_SCANCODE_J];
-    inputs.b = keys[SDL_SCANCODE_K];
-    inputs.lb = keys[SDL_SCANCODE_U];
-    inputs.rb = keys[SDL_SCANCODE_I];
+    inputs.jump = keys[SDL_SCANCODE_SPACE];
+    inputs.crouch = keys[SDL_SCANCODE_LSHIFT];
+
+    inputs.pause = keys[SDL_SCANCODE_ESCAPE];
+    inputs.just_pause = keys[SDL_SCANCODE_ESCAPE] && !prevInputs.pause;
 
     inputs.just_up = keys[SDL_SCANCODE_W] && !prevInputs.up;
     inputs.just_down = keys[SDL_SCANCODE_S] && !prevInputs.down;
     inputs.just_left = keys[SDL_SCANCODE_A] && !prevInputs.left;
     inputs.just_right = keys[SDL_SCANCODE_D] && !prevInputs.right;
 
-    inputs.just_a = keys[SDL_SCANCODE_J] && !prevInputs.a;
-    inputs.just_b = keys[SDL_SCANCODE_K] && !prevInputs.b;
-    inputs.just_lb = keys[SDL_SCANCODE_U] && !prevInputs.lb;
-    inputs.just_rb = keys[SDL_SCANCODE_I] && !prevInputs.rb;
+    inputs.just_jump = keys[SDL_SCANCODE_SPACE] && !prevInputs.jump;
+    inputs.just_crouch = keys[SDL_SCANCODE_LSHIFT] && !prevInputs.crouch;
 
     prevInputs = inputs;
 }
 
 static void run_game() {
     interlace ^= 1;
-    clear_buf(bgColor);
+    clear_buf(0);
 
     check_inputs();
-    crank_adjust(inputs, &crankRotation);
-    move_camera(&cam, inputs, crankRotation);
+    Vec2i newPos = mouse_move(window, pause);
+    if (!pause) { move_camera(&cam, inputs, newPos, pause, deltaTime); }
     computeCamData(&cam);
 
-    add_mesh_scene(map, (Vec3f){0, 0, 0}, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f}, cam, true);
+    computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
+    add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, false);
+
     draw_tris(cam);
 }
 
 static void init() {
-    screenBuffer = malloc(MAIN_SCREEN_W * MAIN_SCREEN_H * sizeof(Pixel_t));
-    mainBuffer = malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
+    screenBuffer = fox_malloc(MAIN_SCREEN_W * MAIN_SCREEN_H * sizeof(Pixel_t));
+    mainBuffer = fox_malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
 
     cam = (Camera_t){
         .pos = (Vec3f){0.0f, 0.0f, -2.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
         .fov = 90.0f, .nearPlane = 0.001f, .farPlane = 1000.0f
     };
 
-    bgColor = color_to_pixel(0);
     load_mesh(&map, "mesh/Castle.fox");
 }
 
-static inline void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {
+static void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {
     int yStep = (srcHeight << 16) / dstHeight;
 
     int srcY = 0;
@@ -125,9 +127,17 @@ int main(int argc, char* argv[]) {
     SDL_Texture* screenBlit = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, MAIN_SCREEN_W, MAIN_SCREEN_H);
 
     init();
+
+    add_triCount(map.triCount);
     alloc_mesh();
+
+    lastTime = SDL_GetPerformanceCounter();
     while (running) {
         frameStart = SDL_GetTicks();
+
+        Uint64 currentTime = SDL_GetPerformanceCounter();
+        deltaTime = (float)(currentTime - lastTime) / SDL_GetPerformanceFrequency();
+        lastTime = currentTime;
 
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) running = false;
@@ -135,6 +145,20 @@ int main(int argc, char* argv[]) {
         
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
+
+        if (inputs.just_pause) {
+            pause = !pause;
+
+            if (!pause) {
+                int centerX = MAIN_SCREEN_W / 2;
+                int centerY = MAIN_SCREEN_H / 2;
+
+                SDL_WarpMouseInWindow(window, centerX, centerY);
+            }
+        }
+
+        if (pause) { SDL_SetRelativeMouseMode(SDL_FALSE); }
+        else { SDL_SetRelativeMouseMode(SDL_TRUE); }
 
         run_game();
         scale_buffer(mainBuffer, SCREEN_W, SCREEN_H, screenBuffer, MAIN_SCREEN_W, MAIN_SCREEN_H);

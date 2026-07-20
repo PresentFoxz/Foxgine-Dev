@@ -16,7 +16,7 @@ static Vec3f computeNormal(Vec3f tri[3]) {
     normal.y = edge1.z * edge2.x - edge1.x * edge2.z;
     normal.z = edge1.x * edge2.y - edge1.y * edge2.x;
     
-    float len = sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+    float len = fastsqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
     if (len != 0.0f) {
         normal.x /= len;
         normal.y /= len;
@@ -27,32 +27,44 @@ static Vec3f computeNormal(Vec3f tri[3]) {
 }
 
 void load_mesh(Mesh *meshModel, char *filename) {
-    FILE *file = fopen(filename, "r");
+    #ifdef PLAYDATE_SDK
+    FileType *file = pd->file->open(filename, kFileRead | kFileReadData);
+    if(!file) {
+        pd->system->logToConsole("Failed to open %s\n", filename);
+        return;
+    }
+    #else
+    FileType *file = fopen(filename, "r");
     if(!file) {
         printf("Failed to open %s\n", filename);
         return;
     }
+    #endif
 
     int verts = 0;
     int tris = 0;
 
     char line[128];
-    while(fgets(line, sizeof(line), file)) {
+    while(fox_fgets(line, sizeof(line), file)) {
         if(line[0] == 'v') verts++;
         if(line[0] == 'f') tris++;
     }
 
+    #ifdef PLAYDATE_SDK
+    pd->file->seek(file, 0, SEEK_SET);
+    #else
     rewind(file);
+    #endif
 
     meshModel->vertCount = verts;
     meshModel->triCount = tris;
 
-    meshModel->verts = malloc(sizeof(Vec3f) * verts);
-    meshModel->tris = malloc(sizeof(TriIndex) * tris);
+    meshModel->verts = fox_malloc(sizeof(Vec3f) * verts);
+    meshModel->tris = fox_malloc(sizeof(TriIndex) * tris);
 
     int vi = 0;
     int ti = 0;
-    while(fgets(line, sizeof(line), file)) {
+    while(fox_fgets(line, sizeof(line), file)) {
         if(line[0] == 'v') {
             float x,y,z;
             sscanf(line, "v %f %f %f", &x, &y, &z);
@@ -62,15 +74,16 @@ void load_mesh(Mesh *meshModel, char *filename) {
 
         else if(line[0] == 'f') {
             int a,b,c;
-            int color;
+            int color,bfc;
 
-            sscanf(line, "f %d %d %d %d", &a, &b, &c, &color);
+            sscanf(line, "f %d %d %d %d %d", &a, &b, &c, &color, &bfc);
 
             meshModel->tris[ti].a = a;
             meshModel->tris[ti].b = b;
             meshModel->tris[ti].c = c;
 
-            meshModel->tris[ti].color = color_to_pixel(color);
+            meshModel->tris[ti].color = color;
+            meshModel->tris[ti].bfc = bfc ? false : true;
 
 
             Vec3f face[3] = { meshModel->verts[a], meshModel->verts[b], meshModel->verts[c] };
@@ -96,5 +109,13 @@ void load_mesh(Mesh *meshModel, char *filename) {
             meshModel->tris[ti].size = (biggestEdge > 4.0f);
             ti++;
         }
-    } fclose(file);
+    } 
+    
+    #ifdef PLAYDATE_SDK
+    pd->file->close(file);
+    pd->system->logToConsole("Grabbed Mesh: %s | Tri Count: %d\n", filename, meshModel->triCount);
+    #else
+    fclose(file);
+    printf("Grabbed Mesh: %s | Tri Count: %d\n", filename, meshModel->triCount);
+    #endif
 }

@@ -31,6 +31,7 @@ typedef struct {
     Pixel_t color;
     Vec3f normal;
     bool size;
+    bool bfc;
 } TriIndex;
 
 typedef struct {
@@ -39,6 +40,9 @@ typedef struct {
 
     TriIndex *tris;
     uint32_t triCount;
+
+    Mat3x3 matrix;
+    bool rotated;
 } Mesh;
 
 typedef struct{
