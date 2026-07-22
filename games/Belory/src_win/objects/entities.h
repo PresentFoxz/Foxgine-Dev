@@ -27,7 +27,7 @@ static Vec2i mouse_move(SDL_Window* window, bool menu) {
 static void move_camera(Camera_t *cam, KeyInputs inputs, Vec2i mouse, bool menu, float dt) {
     float yaw = cam->rot.y;
     float mouseSensitivity = 0.003f;
-    float moveSpd = 5.0f * dt;
+    float moveSpd = 10.0f * dt;
 
     if (!menu) {
         cam->rot.y += mouse.x * mouseSensitivity;

@@ -58,7 +58,40 @@ static void check_inputs() {
     prevInputs = inputs;
 }
 
+static void create_chunks(Vec3i offset) {
+    reset_triCount();
+    int renderable = 0;
+    for (int i=0; i < CHUNK_AMT; i++) {
+        Vec3i newOffset = {chunkRadius[i].x + offset.x, chunkRadius[i].y + offset.y, chunkRadius[i].z + offset.z};
+        chunkData[i] = createWorld(newOffset);
+        chunkData[i].pos = newOffset;
+        
+        if (!chunkData[i].renderable) { freeMesh(&chunkMesh[i]); continue; }
+        if (chunkData[i].LOD == 1) continue;
+        
+        freeMesh(&chunkMesh[i]);
+        chunkMesh[i] = mesh_create(chunkData[i], i, blockTypes);
+
+        if (chunkMesh[i].triCount <= 0) { chunkData[i].renderable = false; continue; }
+        add_triCount(chunkMesh[i].triCount);
+        renderable++;
+    }
+    alloc_mesh();
+}
+
+static bool onStart = true;
+static Vec3i currChunk, lastChunk;
 static void run_game() {
+    if (onStart) {
+        currChunk = (Vec3i){ floor_div(cam.pos.x, (BLOCK_X * BLOCK_SIZE)), floor_div(cam.pos.y, (BLOCK_Y * BLOCK_SIZE)), floor_div(cam.pos.z, (BLOCK_Z * BLOCK_SIZE)) };
+
+        create_chunks(currChunk);
+        onStart = false;
+        lastChunk = currChunk;
+
+        return;
+    }
+
     interlace ^= 1;
     clear_buf(0);
 
@@ -68,9 +101,16 @@ static void run_game() {
     if (!pause) { move_camera(&cam, inputs, newPos, pause, deltaTime); }
     computeCamData(&cam);
 
+    currChunk = (Vec3i){ floor_div(cam.pos.x, (BLOCK_X * BLOCK_SIZE)), floor_div(cam.pos.y, (BLOCK_Y * BLOCK_SIZE)), floor_div(cam.pos.z, (BLOCK_Z * BLOCK_SIZE)) };
+
+    if (lastChunk.x != currChunk.x || lastChunk.y != currChunk.y || lastChunk.z != currChunk.z) create_chunks(currChunk);
+
+    printf("Cam Pos: [ %d | %d | %d ]\n", floor_div(cam.pos.x, BLOCK_SIZE), floor_div(cam.pos.y, BLOCK_SIZE), floor_div(cam.pos.z, BLOCK_SIZE));
+
     // computeMatrixModel(&blockTypes[0], (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
     // add_mesh_scene(blockTypes[0], (Vec3f){0, 0, 0}, cam, false);
     for (int i=0; i < CHUNK_AMT; i++) {
+        if (!chunkData[i].renderable) continue;
         computeMatrixModel(&chunkMesh[i], (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
 
         add_mesh_scene(
@@ -78,8 +118,9 @@ static void run_game() {
             (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z},
             cam, false
         );
-    }
-    draw_tris(cam);
+    } draw_tris(cam);
+
+    lastChunk = currChunk;
 }
 
 static void init() {
@@ -88,27 +129,22 @@ static void init() {
     blockTypes = fox_malloc(1 * sizeof(Mesh));
 
     cam = (Camera_t){
-        .pos = (Vec3f){0.0f, 0.0f, 0.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
+        .pos = (Vec3f){0.0f, 100.0f * BLOCK_SIZE, 0.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
         .fov = 90.0f, .nearPlane = 0.001f, .farPlane = 1000.0f
     };
 
     load_mesh(&blockTypes[0], "mesh/Cube.fox");
-    
+
     int index = 0;
-    for (int y=-CHUNK_YM; y <= CHUNK_YP; y++) {
-        for (int x=-CHUNK_XM; x <= CHUNK_XP; x++) {
-            for (int z=-CHUNK_ZM; z <= CHUNK_ZP; z++) {
+    for (int y=-CHUNK_Y; y <= CHUNK_Y; y++) {
+        for (int x=-CHUNK_X; x <= CHUNK_X; x++) {
+            for (int z=-CHUNK_Z; z <= CHUNK_Z; z++) {
                 chunkRadius[index++] = (Vec3i){x, y, z};
             }
         }
     }
-
-    for (int i=0; i < CHUNK_AMT; i++) {
-        chunkData[i] = random_chunk_data(0, chunkRadius[i]);
-        if (chunkData[i].LOD == 1) continue;
-
-        chunkMesh[i] = mesh_create(chunkData[i], blockTypes);
-    }
+    
+    perlinInit(245773891241230);
 }
 
 static void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {

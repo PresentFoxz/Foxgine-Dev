@@ -48,7 +48,7 @@ typedef uint8_t Pixel_t;
 
 static inline void* fox_realloc(void* ptr, size_t size) { return pd->system->realloc(ptr, size); }
 static inline void* fox_malloc(size_t size) { return pd->system->realloc(NULL, size); }
-static inline void fox_free(void* ptr) { pd->system->realloc(ptr, 0); }
+static inline void fox_free(void* ptr) { if (ptr) { pd->system->realloc(ptr, 0); } }
 
 static int fox_fgets(char *out, int maxLen, FileType *file) {
     int i = 0;
@@ -80,6 +80,14 @@ static inline float fastsqrt(float x) {
     conv.i = 0x5f3759df - (conv.i >> 1);
     float y = conv.f;
     return y * (1.5f - 0.5f * x * y * y);
+}
+
+static inline int floor_div(float v, float s) {
+    float d = v / s;
+    int i = (int)d;
+
+    if (d < 0.0f && d != (float)i) { i--; }
+    return i;
 }
 
 #endif

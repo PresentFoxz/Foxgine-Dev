@@ -8,7 +8,7 @@ static void move_camera(Camera_t *cam, float dt) {
     pd->system->getButtonState(&held, &tapped, NULL);
 
     float yaw = cam->rot.y;
-    float moveSpd = 5.0f * dt;
+    float moveSpd = 10.0f * dt;
     float rotSpd = 0.03f;
     float crankDelta = pd->system->getCrankChange();
 

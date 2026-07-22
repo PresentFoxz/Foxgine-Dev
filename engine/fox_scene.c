@@ -16,6 +16,15 @@ void reset_triCount() { maxTrianglesInScene = 0; }
 void add_triCount(int size) { maxTrianglesInScene += size; }
 
 void alloc_mesh() {
+    if (fullMesh.tris) {
+        fox_free(fullMesh.tris);
+        fullMesh.tris = NULL;
+    }
+    if (triDist) {
+        fox_free(triDist);
+        triDist = NULL;
+    }
+
     fullMesh.tris = fox_malloc(sizeof(Triangle_t) * maxTrianglesInScene);
     triDist = fox_malloc(sizeof(ObjectOrdering) * maxTrianglesInScene);
 
