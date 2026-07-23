@@ -99,7 +99,7 @@ void renderTriangle(Triangle_t tri3D, Camera_t cam) {
 void draw_tris(Camera_t cam) {
     if (fullMesh.tris == NULL || triDist == NULL) return;
 
-    quickSortIndices(triDist, 0, triDistAmt);
+    if (triDistAmt > 1) quickSortIndices(triDist, 0, triDistAmt - 1);
     for (int t=0; t < triDistAmt; t++) {
         if (triDist[t].obj == O_Triangle) {
             renderTriangle(fullMesh.tris[triDist[t].idx], cam);
@@ -153,10 +153,16 @@ void add_mesh_scene(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
         Vec3f center = {sumX * one_third, sumY * one_third, sumZ * one_third};
         Vec3f fVect = {center.x - cam.pos.x, center.y - cam.pos.y, center.z - cam.pos.z};
 
-        float dot = (tri.normal.x * fVect.x) + (tri.normal.y * fVect.y) + (tri.normal.z * fVect.z);
+        Vec3f normal = tri.normal;
+        if (model.rotated) {
+            Vec3f rotatedNormal;
+            rotateVertex(normal, &model.matrix, &rotatedNormal);
+            normal = rotatedNormal;
+        }
+
+        float dot = (normal.x * fVect.x) + (normal.y * fVect.y) + (normal.z * fVect.z);
         if (!(dot < 0) && tri.bfc) continue;
         if (triStore[0].z < cam.nearPlane && triStore[1].z < cam.nearPlane && triStore[2].z < cam.nearPlane) continue;
-
 
         float dist;
         if (vertUse) {
