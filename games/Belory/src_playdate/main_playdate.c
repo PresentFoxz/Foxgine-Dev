@@ -43,23 +43,25 @@ int eventHandler(PlaydateAPI* playdate, PDSystemEvent event, uint32_t arg) {
 
 static void create_chunks(Vec3i offset) {
     reset_triCount();
-    int renderable = 0;
     for (int i=0; i < CHUNK_AMT; i++) {
         Vec3i newOffset = {chunkRadius[i].x + offset.x, chunkRadius[i].y + offset.y, chunkRadius[i].z + offset.z};
         chunkData[i] = createWorld(newOffset);
         chunkData[i].pos = newOffset;
-        
-        if (!chunkData[i].renderable) { freeMesh(&chunkMesh[i]); continue; }
-        if (chunkData[i].LOD == 1) continue;
-        
+
         freeMesh(&chunkMesh[i]);
+    }
+
+    int renderable = 0;
+    for (int i=0; i < CHUNK_AMT; i++) {
+        if (!chunkData[i].renderable) continue;
+        if (chunkData[i].LOD == 1) continue;
+
         chunkMesh[i] = mesh_create(chunkData[i], i, blockTypes);
 
         if (chunkMesh[i].triCount <= 0) { chunkData[i].renderable = false; continue; }
         add_triCount(chunkMesh[i].triCount);
         renderable++;
-    }
-    alloc_mesh();
+    } alloc_mesh();
 }
 
 static int init() {

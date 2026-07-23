@@ -51,12 +51,15 @@ static inline int getChunkIndex(int x, int y, int z) {
     return ix + RANGE_X * (iy + RANGE_Y * iz);
 }
 
-static int getVoxelSafe(int cx, int cy, int cz, int x, int y, int z) {
+static bool getVoxelSafe(int cx, int cy, int cz, int x, int y, int z) {
+    int idx = getBlockIndex(x, y, z);
+    if (idx == -1) return true;
+
     for (int i = 0; i < CHUNK_AMT; i++) {
         Chunk_t *chunk = &chunkData[i];
-        if (!chunk->renderable) continue;
-        if (chunk->pos.x == cx && chunk->pos.y == cy && chunk->pos.z == cz) return chunk->blocks[getBlockIndex(x, y, z)] != 0;
-    } return 0;
+
+        if (chunk->pos.x == cx && chunk->pos.y == cy && chunk->pos.z == cz) return chunk->blocks[idx] != 0;
+    } return true;
 }
 
 static inline bool block_exists(int currChunk, int nx, int ny, int nz) {
@@ -78,8 +81,7 @@ static inline bool block_exists(int currChunk, int nx, int ny, int nz) {
     if (nz < 0)   { cZ--; nz = BLOCK_Z - 1; }
     else if (nz >= BLOCK_Z) { cZ++; nz = 0; }
 
-    int voxel = getVoxelSafe(cX, cY, cZ, nx, ny, nz);
-    return (voxel == 0) ? false : true;
+    return getVoxelSafe(cX, cY, cZ, nx, ny, nz);
 }
 
 static void freeMesh(Mesh *mesh) {
