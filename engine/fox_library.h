@@ -14,11 +14,6 @@
 
 typedef FILE FileType;
 typedef uint32_t Pixel_t;
-#define MAIN_SCREEN_W 1200
-#define MAIN_SCREEN_H 800
-
-#define SCREEN_W (MAIN_SCREEN_W / 2)
-#define SCREEN_H (MAIN_SCREEN_H / 2)
 
 static inline void* fox_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
 static inline void* fox_malloc(size_t size) { return realloc(NULL, size); }
@@ -40,11 +35,6 @@ extern PlaydateAPI* pd;
 
 typedef SDFile FileType;
 typedef uint8_t Pixel_t;
-#define MAIN_SCREEN_W 400
-#define MAIN_SCREEN_H 240
-
-#define SCREEN_W (MAIN_SCREEN_W / 2)
-#define SCREEN_H (MAIN_SCREEN_H / 2)
 
 static inline void* fox_realloc(void* ptr, size_t size) { return pd->system->realloc(ptr, size); }
 static inline void* fox_malloc(size_t size) { return pd->system->realloc(NULL, size); }
@@ -66,6 +56,11 @@ static int fox_fgets(char *out, int maxLen, FileType *file) {
 }
 
 #endif
+
+extern const int MAIN_SCREEN_W;
+extern const int MAIN_SCREEN_H;
+extern const int SCREEN_W;
+extern const int SCREEN_H;
 
 extern Pixel_t *screenBuffer;
 extern Pixel_t *mainBuffer;

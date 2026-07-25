@@ -47,6 +47,11 @@ typedef struct {
     bool just_right;
     bool just_jump;
     bool just_crouch;
+
+    bool MB1;
+    bool MB2;
+    bool just_MB1;
+    bool just_MB2;
 } KeyInputs;
 #endif
 

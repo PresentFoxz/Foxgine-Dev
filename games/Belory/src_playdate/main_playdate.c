@@ -16,7 +16,7 @@ Pixel_t *mainBuffer;
 Pixel_t *screenBuffer;
 int interlace = 0;
 int interlaceAmt = 1;
-bool canInterlace = true;
+bool canInterlace = false;
 
 bool firstRun = true;
 
@@ -26,6 +26,11 @@ Chunk_t chunkData[CHUNK_AMT];
 Vec3i chunkRadius[CHUNK_AMT];
 
 static int update(void* userdata);
+
+const int MAIN_SCREEN_W = 400;
+const int MAIN_SCREEN_H = 240;
+const int SCREEN_W = (MAIN_SCREEN_W / 2);
+const int SCREEN_H = (MAIN_SCREEN_H / 2);
 
 #ifdef _WINDLL
 __declspec(dllexport)
@@ -61,7 +66,27 @@ static void create_chunks(Vec3i offset) {
         if (chunkMesh[i].triCount <= 0) { chunkData[i].renderable = false; continue; }
         add_triCount(chunkMesh[i].triCount);
         renderable++;
-    } alloc_mesh();
+    }
+
+    add_triCount(12);
+    alloc_mesh();
+}
+
+static void reMesh_chunks() {
+    reset_triCount();
+    for (int i=0; i < CHUNK_AMT; i++) {
+        if (chunkData[i].LOD != 0) continue;
+        chunkData[i].renderable = false;
+
+        freeMesh(&chunkMesh[i]);
+        chunkMesh[i] = mesh_create(chunkData[i], i, blockTypes);
+        if (chunkMesh[i].triCount > 0) { chunkData[i].renderable = true; }
+        if (!chunkData[i].renderable) { freeMesh(&chunkMesh[i]); continue; }
+
+        add_triCount(chunkMesh[i].triCount);
+    }
+    add_triCount(12);
+    alloc_mesh();
 }
 
 static int init() {
@@ -142,6 +167,12 @@ static int update(void* userdata) {
     computeCamData(&cam);
 
     currChunk = (Vec3i){ floor_div(cam.pos.x, (BLOCK_X * BLOCK_SIZE)), floor_div(cam.pos.y, (BLOCK_Y * BLOCK_SIZE)), floor_div(cam.pos.z, (BLOCK_Z * BLOCK_SIZE)) };
+    RayHit result = raycast(cam, currChunk);
+
+    if (result.hit){
+        destroy_voxel(result);
+        reMesh_chunks();
+    }
 
     if (lastChunk.x != currChunk.x || lastChunk.y != currChunk.y || lastChunk.z != currChunk.z) create_chunks(currChunk);
 

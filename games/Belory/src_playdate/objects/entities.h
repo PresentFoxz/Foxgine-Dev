@@ -9,7 +9,7 @@ static void move_camera(Camera_t *cam, float dt) {
 
     float yaw = cam->rot.y;
     float moveSpd = 10.0f * dt;
-    float rotSpd = 0.03f;
+    float rotSpd = 0.3f;
     float crankDelta = pd->system->getCrankChange();
 
     if (held & kButtonUp) {

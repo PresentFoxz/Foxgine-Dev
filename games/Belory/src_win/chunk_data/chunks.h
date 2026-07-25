@@ -48,8 +48,11 @@ static inline int getChunkIndex(int x, int y, int z) {
     int iy = y + CHUNK_Y;
     int iz = z + CHUNK_Z;
 
-    return ix + RANGE_X * (iy + RANGE_Y * iz);
+    return iz + RANGE_Z * (ix + RANGE_X * iy);
 }
+
+static inline Vec3i voxelToChunk(int x, int y, int z) { return (Vec3i){ floor_div(x, BLOCK_X), floor_div(y, BLOCK_Y), floor_div(z, BLOCK_Z) }; }
+static inline Vec3i voxelToLocal(int voxelX, int voxelY, int voxelZ, Vec3i worldChunk) { return (Vec3i){ voxelX - worldChunk.x * BLOCK_X, voxelY - worldChunk.y * BLOCK_Y, voxelZ - worldChunk.z * BLOCK_Z }; }
 
 static bool getVoxelSafe(int cx, int cy, int cz, int x, int y, int z) {
     int idx = getBlockIndex(x, y, z);
@@ -245,6 +248,189 @@ static Chunk_t createWorld(Vec3i worldPos) {
 
     if (blockAmt > 0) worldGen.renderable = true;
     return worldGen;
+}
+
+#define RAY_DIST     10.0f
+#define LARGE_FLOAT  1e30f
+#define RAY_EPSILON  0.000001f
+typedef struct {
+    bool hit;
+    int chunk;
+    Vec3i voxel;
+    Vec3i localVoxel;
+    Vec3i normal;
+    Vec3f pos;
+    float distance;
+    uint8_t block;
+} RayHit;
+
+static RayHit raycast(Camera_t cam, Vec3i currChunk) {
+    RayHit result = {
+        .hit = false,
+        .chunk = -1,
+        .voxel = {0, 0, 0},
+        .localVoxel = {0, 0, 0},
+        .normal = {0, 0, 0},
+        .pos = cam.pos,
+        .distance = RAY_DIST,
+        .block = 0
+    };
+
+    Vec3f worldOrigin = cam.pos;
+
+    Vec3f voxelOrigin = {
+        worldOrigin.x / (float)BLOCK_SIZE,
+        worldOrigin.y / (float)BLOCK_SIZE,
+        worldOrigin.z / (float)BLOCK_SIZE
+    };
+
+    float yaw = cam.rot.y;
+    float pitch = cam.rot.x;
+
+    Vec3f direction = {
+        cosf(pitch) * sinf(yaw),
+        sinf(-pitch),
+        cosf(pitch) * cosf(yaw)
+    };
+
+    float directionLength = sqrtf(
+        direction.x * direction.x +
+        direction.y * direction.y +
+        direction.z * direction.z
+    );
+
+    if (directionLength <= RAY_EPSILON ||
+        isnan(directionLength)) {
+        return result;
+    }
+
+    direction.x /= directionLength;
+    direction.y /= directionLength;
+    direction.z /= directionLength;
+    
+    int voxelX = (int)floorf(voxelOrigin.x);
+    int voxelY = (int)floorf(voxelOrigin.y);
+    int voxelZ = (int)floorf(voxelOrigin.z);
+    
+    int stepX = 0;
+    int stepY = 0;
+    int stepZ = 0;
+
+    if (direction.x > RAY_EPSILON) { stepX = 1; }
+    else if (direction.x < -RAY_EPSILON) { stepX = -1; }
+
+    if (direction.y > RAY_EPSILON) { stepY = 1; } 
+    else if (direction.y < -RAY_EPSILON) { stepY = -1; }
+
+    if (direction.z > RAY_EPSILON) { stepZ = 1; }
+    else if (direction.z < -RAY_EPSILON) { stepZ = -1; }
+    
+    float tDeltaX = stepX != 0 ? fabsf(1.0f / direction.x) : LARGE_FLOAT;
+    float tDeltaY = stepY != 0 ? fabsf(1.0f / direction.y) : LARGE_FLOAT;
+    float tDeltaZ = stepZ != 0 ? fabsf(1.0f / direction.z) : LARGE_FLOAT;
+    
+    float tMaxX;
+    float tMaxY;
+    float tMaxZ;
+
+    if (stepX > 0) { tMaxX = ((float)(voxelX + 1) - voxelOrigin.x) * tDeltaX; }
+    else if (stepX < 0) { tMaxX = (voxelOrigin.x - (float)voxelX) * tDeltaX; }
+    else { tMaxX = LARGE_FLOAT; }
+
+    if (stepY > 0) { tMaxY = ((float)(voxelY + 1) - voxelOrigin.y) * tDeltaY; }
+    else if (stepY < 0) { tMaxY = (voxelOrigin.y - (float)voxelY) * tDeltaY; }
+    else { tMaxY = LARGE_FLOAT; }
+
+    if (stepZ > 0) { tMaxZ = ((float)(voxelZ + 1) - voxelOrigin.z) * tDeltaZ; }
+    else if (stepZ < 0) { tMaxZ = (voxelOrigin.z - (float)voxelZ) * tDeltaZ; }
+    else { tMaxZ = LARGE_FLOAT; }
+
+    float distance = 0.0f;
+    Vec3i enteredNormal = {0, 0, 0};
+
+    float maxDistance = RAY_DIST / (float)BLOCK_SIZE;
+    while (distance <= maxDistance) {
+        Vec3i worldChunk = voxelToChunk(voxelX, voxelY, voxelZ);
+
+        Vec3i relativeChunk = {
+            worldChunk.x - currChunk.x,
+            worldChunk.y - currChunk.y,
+            worldChunk.z - currChunk.z
+        };
+        int chunkIndex = getChunkIndex(relativeChunk.x, relativeChunk.y, relativeChunk.z);
+
+        if (chunkIndex != -1) {
+            Vec3i localVoxel = voxelToLocal(voxelX, voxelY, voxelZ, worldChunk);
+            int blockIndex = getBlockIndex(localVoxel.x, localVoxel.y, localVoxel.z);
+
+            if (blockIndex != -1) {
+                uint8_t block = chunkData[chunkIndex].blocks[blockIndex];
+
+                if (block != 0) {
+                    result.hit = true;
+                    result.chunk = chunkIndex;
+
+                    result.voxel = (Vec3i){ voxelX, voxelY, voxelZ };
+
+                    result.localVoxel = localVoxel;
+                    result.normal = enteredNormal;
+
+                    result.distance = distance;
+                    result.block = block;
+
+                    result.pos = (Vec3f){
+                        (voxelOrigin.x + direction.x * distance) * BLOCK_SIZE,
+                        (voxelOrigin.y + direction.y * distance) * BLOCK_SIZE,
+                        (voxelOrigin.z + direction.z * distance) * BLOCK_SIZE
+                    };
+
+                    return result;
+                }
+            }
+        }
+
+        if (tMaxX <= tMaxY && tMaxX <= tMaxZ) {
+            distance = tMaxX;
+            if (distance > maxDistance) break;
+
+            voxelX += stepX;
+            tMaxX += tDeltaX;
+
+            enteredNormal = (Vec3i){ -stepX, 0, 0 };
+        } else if (tMaxY <= tMaxZ) {
+            distance = tMaxY;
+            if (distance > maxDistance) break;
+
+            voxelY += stepY;
+            tMaxY += tDeltaY;
+
+            enteredNormal = (Vec3i){ 0, -stepY, 0 };
+        } else {
+            distance = tMaxZ;
+            if (distance > maxDistance) break;
+
+            voxelZ += stepZ;
+            tMaxZ += tDeltaZ;
+
+            enteredNormal = (Vec3i){ 0, 0, -stepZ };
+        }
+    }
+
+    result.pos = (Vec3f){
+        (voxelOrigin.x + direction.x * maxDistance) * BLOCK_SIZE,
+        (voxelOrigin.y + direction.y * maxDistance) * BLOCK_SIZE,
+        (voxelOrigin.z + direction.z * maxDistance) * BLOCK_SIZE
+    };
+    result.voxel = (Vec3i) { voxelX, voxelY, voxelZ };
+    
+    return result;
+}
+
+static void destroy_voxel(RayHit ray) {
+    for (int i=0; i < CHUNK_AMT; i++) {
+        int blockIndex = getBlockIndex(ray.localVoxel.x, ray.localVoxel.y, ray.localVoxel.z);
+        chunkData[ray.chunk].blocks[blockIndex] = 0;
+    }
 }
 
 #endif

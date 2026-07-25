@@ -26,6 +26,11 @@ float deltaTime;
 
 Mesh map;
 
+const int MAIN_SCREEN_W = 1280;
+const int MAIN_SCREEN_H = 800;
+const int SCREEN_W = (MAIN_SCREEN_W / 2);
+const int SCREEN_H = (MAIN_SCREEN_H / 2);
+
 KeyInputs inputs = {0};
 static KeyInputs prevInputs = {0};
 static void check_inputs() {

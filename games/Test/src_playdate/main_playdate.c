@@ -20,7 +20,11 @@ Mesh map;
 bool firstRun = true;
 
 static int update(void* userdata);
-static int init();
+
+const int MAIN_SCREEN_W = 400;
+const int MAIN_SCREEN_H = 240;
+const int SCREEN_W = (MAIN_SCREEN_W / 2);
+const int SCREEN_H = (MAIN_SCREEN_H / 2);
 
 #ifdef _WINDLL
 __declspec(dllexport)
