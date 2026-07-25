@@ -30,8 +30,8 @@ SDL_Window* window;
 Uint64 lastTime;
 float deltaTime;
 
-const int MAIN_SCREEN_W = 1280;
-const int MAIN_SCREEN_H = 800;
+const int MAIN_SCREEN_W = 400;
+const int MAIN_SCREEN_H = 240;
 const int SCREEN_W = (MAIN_SCREEN_W / 2);
 const int SCREEN_H = (MAIN_SCREEN_H / 2);
 
