@@ -119,3 +119,119 @@ void load_mesh(Mesh *meshModel, char *filename) {
     printf("Grabbed Mesh: %s | Tri Count: %d\n", filename, meshModel->triCount);
     #endif
 }
+
+void load_animation(MeshAnimations *animatedModel, char *filename) {
+    if (!animatedModel || !filename) return;
+
+    animatedModel->ModelAnimations = NULL;
+    animatedModel->frameCounts = NULL;
+    animatedModel->animations = 0;
+
+    #ifdef PLAYDATE_SDK
+    FileType *file = pd->file->open(filename, kFileRead | kFileReadData);
+    if(!file) {
+        pd->system->logToConsole("Failed to open %s\n", filename);
+        return;
+    }
+    #else
+    FileType *file = fopen(filename, "r");
+    if(!file) {
+        printf("Failed to open %s\n", filename);
+        return;
+    }
+    #endif
+
+    char line[128];
+    int animCount = 0;
+    while(fox_fgets(line, sizeof(line), file)) {
+        if (sscanf(line, "Animations %d", &animCount) == 1) break;
+    }
+
+    if (animCount <= 0) {
+        #ifdef PLAYDATE_SDK
+        pd->system->logToConsole("No animations found in: %s\n", filename);
+        pd->file->close(file);
+        #else
+        printf("No animations found in: %s\n", filename);
+        fclose(file);
+        #endif
+        return;
+    }
+
+    #ifdef PLAYDATE_SDK
+    pd->file->seek(file, 0, SEEK_SET);
+    #else
+    rewind(file);
+    #endif
+
+    animatedModel->ModelAnimations = fox_malloc(sizeof(MeshFrame *) * animCount);
+    animatedModel->frameCounts = fox_malloc(sizeof(int) * animCount);
+
+    if (!animatedModel->ModelAnimations || !animatedModel->frameCounts) {
+        fox_free(animatedModel->ModelAnimations);
+        fox_free(animatedModel->frameCounts);
+
+        #ifdef PLAYDATE_SDK
+        pd->file->close(file);
+        #else
+        fclose(file);
+        #endif
+
+        return;
+    }
+
+    animatedModel->animations = animCount;
+
+    for (int i = 0; i < animCount; i++) {
+        animatedModel->ModelAnimations[i] = NULL;
+        animatedModel->frameCounts[i] = 0;
+    }
+
+    int animIndex = -1;
+    int currFrame = 0;
+    while(fox_fgets(line, sizeof(line), file)) {
+        int frameCount;
+
+        if (sscanf(line, "StartAnim %d", &frameCount) == 1) {
+            animIndex++;
+            if (animIndex >= animCount || frameCount <= 0) break;
+
+            animatedModel->ModelAnimations[animIndex] = fox_malloc(sizeof(MeshFrame) * frameCount);
+
+            if (!animatedModel->ModelAnimations[animIndex]) break;
+            animatedModel->frameCounts[animIndex] = frameCount;
+            currFrame = 0;
+
+            for (int i=0; i < frameCount; i++) {
+                animatedModel->ModelAnimations[animIndex][i] = (MeshFrame){0};
+            }
+
+            continue;
+        }
+
+        if (strncmp(line, "EndAnim", 7) == 0) {
+            currFrame = 0;
+            continue;
+        }
+
+        char modelFile[256];
+        int heldFrameCount;
+        if (sscanf(line, "Frame %256s %d", modelFile, &heldFrameCount) == 2) {
+            if (animIndex < 0 || animIndex >= animCount || currFrame >= animatedModel->frameCounts[animIndex]) continue;
+
+            MeshFrame *frame = &animatedModel->ModelAnimations[animIndex][currFrame];
+            frame->heldFrameCount = heldFrameCount;
+
+            load_mesh(&frame->ModelFrame, modelFile);
+
+            currFrame++;
+            continue;
+        }
+    }
+
+    #ifdef PLAYDATE_SDK
+    pd->file->close(file);
+    #else
+    fclose(file);
+    #endif
+}

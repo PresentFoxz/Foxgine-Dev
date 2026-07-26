@@ -26,12 +26,15 @@ Mesh chunkMesh[CHUNK_AMT];
 Chunk_t chunkData[CHUNK_AMT];
 Vec3i chunkRadius[CHUNK_AMT];
 
+MeshAnimations *animModels;
+Objects_t *objList;
+
 SDL_Window* window;
 Uint64 lastTime;
 float deltaTime;
 
-const int MAIN_SCREEN_W = 400;
-const int MAIN_SCREEN_H = 240;
+const int MAIN_SCREEN_W = 1280;
+const int MAIN_SCREEN_H = 800;
 const int SCREEN_W = (MAIN_SCREEN_W / 2);
 const int SCREEN_H = (MAIN_SCREEN_H / 2);
 
@@ -90,9 +93,7 @@ static void create_chunks(Vec3i offset) {
         if (chunkMesh[i].triCount <= 0) { chunkData[i].renderable = false; continue; }
         add_triCount(chunkMesh[i].triCount);
         renderable++;
-    }
-
-    add_triCount(12);
+    } add_triCount(12);
     alloc_mesh();
 }
 
@@ -154,7 +155,10 @@ static void run_game() {
             (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z},
             cam, false
         );
-    } draw_tris(cam);
+    }
+    
+    // add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
+    draw_tris(cam, objList, animModels);
 
     lastChunk = currChunk;
 }
@@ -181,6 +185,13 @@ static void init() {
     }
     
     perlinInit(245773891241230);
+
+    animModels = fox_malloc(sizeof(MeshAnimations) * 1);
+    objList = fox_malloc(sizeof(Objects_t) * 1);
+
+    // objList[0] = (Objects_t){.pos = (Vec3f){0, -7, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
+    // load_animation(&animModels[0], "mesh/chicken/anim.vul");
+    // add_objCount(1);
 }
 
 static void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {

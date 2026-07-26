@@ -2,5 +2,5 @@ name=Castle
 author=PresentFox
 version=7.20.2026-0.3
 bundleID=com.presentfox.castle
-pdxversion=30005
-buildtime=838338080
+pdxversion=30100
+buildtime=838350323

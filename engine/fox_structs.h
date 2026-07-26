@@ -67,4 +67,21 @@ typedef struct {
     int prevCrank;
 } Camera_t;
 
+typedef struct {
+    Vec3f pos;
+    Vec3f rot;
+    Vec3f size;
+
+    Mat3x3 matrix;
+
+    Vec3f fVect;
+    Vec3f moveVect;
+    Vec3f velocity;
+
+    int modelID;
+    int currentAnim;
+    int currentFrame;
+    float distMod;
+} Objects_t;
+
 #endif

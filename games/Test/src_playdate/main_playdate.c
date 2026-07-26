@@ -17,6 +17,8 @@ int interlaceAmt = 1;
 bool canInterlace = true;
 
 Mesh map;
+MeshAnimations *animModels;
+Objects_t *objList;
 bool firstRun = true;
 
 static int update(void* userdata);
@@ -50,6 +52,13 @@ static int init() {
     };
 
     load_mesh(&map, "mesh/Castle.fox");
+
+    animModels = fox_malloc(sizeof(MeshAnimations) * 1);
+    objList = fox_malloc(sizeof(Objects_t) * 1);
+
+    objList[0] = (Objects_t){.pos = (Vec3f){0, -7, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
+    load_animation(&animModels[0], "mesh/chicken/anim.vul");
+    add_objCount(1);
 
     pd->system->logToConsole("Ran init function!");
     return 0;
@@ -105,8 +114,9 @@ static int update(void* userdata) {
 
     computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
     add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, false);
+    add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
     
-    draw_tris(cam);
+    draw_tris(cam, objList, animModels);
     draw_to_playdate();
 
     pd->graphics->fillRect(0, 0, 20, 20, kColorWhite);

@@ -45,6 +45,17 @@ typedef struct {
     bool rotated;
 } Mesh;
 
+typedef struct {
+    Mesh ModelFrame;
+    int heldFrameCount;
+} MeshFrame;
+
+typedef struct {
+    MeshFrame **ModelAnimations;
+    int *frameCounts;
+    int animations;
+} MeshAnimations;
+
 typedef struct{
     uint32_t magic;
     uint16_t version;
@@ -71,5 +82,6 @@ typedef struct {
 } ObjectOrdering;
 
 void load_mesh(Mesh *meshModel, char *filename);
+void load_animation(MeshAnimations *animatedModel, char *filename);
 
 #endif

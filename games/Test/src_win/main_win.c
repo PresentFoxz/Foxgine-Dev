@@ -25,6 +25,8 @@ Uint64 lastTime;
 float deltaTime;
 
 Mesh map;
+MeshAnimations *animModels;
+Objects_t *objList;
 
 const int MAIN_SCREEN_W = 1280;
 const int MAIN_SCREEN_H = 800;
@@ -70,8 +72,9 @@ static void run_game() {
 
     computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
     add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, false);
+    add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
 
-    draw_tris(cam);
+    draw_tris(cam, objList, animModels);
 }
 
 static void init() {
@@ -84,6 +87,13 @@ static void init() {
     };
 
     load_mesh(&map, "mesh/Castle.fox");
+
+    animModels = fox_malloc(sizeof(MeshAnimations) * 1);
+    objList = fox_malloc(sizeof(Objects_t) * 1);
+
+    objList[0] = (Objects_t){.pos = (Vec3f){0, -7, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
+    load_animation(&animModels[0], "mesh/chicken/anim.vul");
+    add_objCount(1);
 }
 
 static void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {

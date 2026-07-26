@@ -6,6 +6,7 @@
 #include <math.h>
 
 static int maxTrianglesInScene = 0;
+static int maxObjectsInScene = 0;
 const float one_third = 0.33333333f;
 
 static RendMesh fullMesh;
@@ -13,7 +14,9 @@ static ObjectOrdering *triDist;
 static int triDistAmt = 0;
 
 void reset_triCount() { maxTrianglesInScene = 0; }
+void reset_objCount() { maxTrianglesInScene = 0; }
 void add_triCount(int size) { maxTrianglesInScene += size; }
+void add_objCount(int size) { maxObjectsInScene += size; }
 
 void alloc_mesh() {
     if (fullMesh.tris) {
@@ -26,7 +29,7 @@ void alloc_mesh() {
     }
 
     fullMesh.tris = fox_malloc(sizeof(Triangle_t) * maxTrianglesInScene);
-    triDist = fox_malloc(sizeof(ObjectOrdering) * maxTrianglesInScene);
+    triDist = fox_malloc(sizeof(ObjectOrdering) * (maxTrianglesInScene + maxObjectsInScene));
 
     if (fullMesh.tris == NULL || triDist == NULL) {
         printf("Failed to allocate\n");
@@ -96,22 +99,6 @@ void renderTriangle(Triangle_t tri3D, Camera_t cam) {
     }
 }
 
-void draw_tris(Camera_t cam) {
-    if (fullMesh.tris == NULL || triDist == NULL) return;
-
-    if (triDistAmt > 1) quickSortIndices(triDist, 0, triDistAmt - 1);
-    for (int t=0; t < triDistAmt; t++) {
-        if (triDist[t].obj == O_Triangle) {
-            renderTriangle(fullMesh.tris[triDist[t].idx], cam);
-        } else if (triDist[t].obj == O_Object) {
-            continue;
-        }
-    }
-
-    fullMesh.triCount = 0;
-    triDistAmt = 0;
-}
-
 void computeMatrixModel(Mesh *model, Vec3f rot, Vec3f size) {
     model->rotated = false;
     if (rot.x != 0 && rot.y != 0 && rot.z != 0) {
@@ -120,6 +107,21 @@ void computeMatrixModel(Mesh *model, Vec3f rot, Vec3f size) {
 
         model->rotated = true;
     }
+}
+
+void add_obj_scene(Vec3f pos, float distMod, Camera_t cam, int idx) {
+    Vec3f camSpace = pos;
+    rotateVertexInPlace(&camSpace, cam.pos, &cam.matrix);
+
+    float dist = camSpace.x*camSpace.x + camSpace.y*camSpace.y + camSpace.z*camSpace.z;
+    float newDist = (dist - distMod);
+    if (newDist < 0.001f) newDist = 0.002f;
+    if (cam.farPlane && newDist > cam.renderRadiusSq) return;
+
+    Vec2i screenPos = vert_to_screen(camSpace, cam.focal, cam.nearPlane);
+    if (screenPos.x < 0 || screenPos.x >= SCREEN_W || screenPos.y < 0 || screenPos.y >= SCREEN_H) return;
+
+    triDist[triDistAmt++] = (ObjectOrdering){ .idx = idx, .obj = O_Object, .dist = newDist };
 }
 
 void add_mesh_scene(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
@@ -176,17 +178,102 @@ void add_mesh_scene(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
         }
         if (cam.farPlane && dist > cam.renderRadiusSq) continue;
 
-        triDist[fullMesh.triCount] = (ObjectOrdering){ .idx = fullMesh.triCount, .obj = O_Triangle, .dist = dist };
-
-        fullMesh.tris[fullMesh.triCount] = (Triangle_t){ .p0 = triStore[0], .p1 = triStore[1], .p2 = triStore[2], .color = tri.color };
-
-        fullMesh.triCount++;
-        triDistAmt++;
+        triDist[triDistAmt++] = (ObjectOrdering){ .idx = fullMesh.triCount, .obj = O_Triangle, .dist = dist };
+        fullMesh.tris[fullMesh.triCount++] = (Triangle_t){ .p0 = triStore[0], .p1 = triStore[1], .p2 = triStore[2], .color = tri.color };
     }
+}
+
+void add_mesh_obj(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
+    RendMesh newMesh;
+    ObjectOrdering *newDist;
+    int newDistAmt = 0;
+
+    newMesh.tris = fox_malloc(sizeof(Triangle_t) * model.triCount);
+    newDist = fox_malloc(sizeof(Triangle_t) * model.triCount);
+    newMesh.triCount = 0;
+
+    if (newMesh.tris == NULL) return;
+    if (newDist == NULL) return;
+
+    bool triFacing = false;
+    for (int t = 0; t < model.triCount; t++) {
+        Vec3f triStore[3];
+        float sumX = 0, sumY = 0, sumZ = 0;
+        TriIndex tri = model.tris[t];
+        Vec3f verts[3] = {model.verts[tri.a], model.verts[tri.b], model.verts[tri.c]};
+        for (int v = 0; v < 3; v++) {
+            if (model.rotated) { rotateVertex(verts[v], &model.matrix, &triStore[v]); }
+            else { triStore[v] = verts[v]; }
+            
+            triStore[v].x += pos.x;
+            triStore[v].y += pos.y;
+            triStore[v].z += pos.z;
+
+            sumX += triStore[v].x;
+            sumY += triStore[v].y;
+            sumZ += triStore[v].z;
+            
+            rotateVertexInPlace(&triStore[v], cam.pos, &cam.matrix);
+        }
+
+        Vec3f center = {sumX * one_third, sumY * one_third, sumZ * one_third};
+        Vec3f fVect = {center.x - cam.pos.x, center.y - cam.pos.y, center.z - cam.pos.z};
+
+        Vec3f normal = tri.normal;
+        if (model.rotated) {
+            Vec3f rotatedNormal;
+            rotateVertex(normal, &model.matrix, &rotatedNormal);
+            normal = rotatedNormal;
+        }
+
+        float dot = (normal.x * fVect.x) + (normal.y * fVect.y) + (normal.z * fVect.z);
+        if (!(dot < 0) && tri.bfc) continue;
+        if (triStore[0].z < cam.nearPlane && triStore[1].z < cam.nearPlane && triStore[2].z < cam.nearPlane) continue;
+
+        float dist;
+        if (vertUse) {
+            float z0 = triStore[0].z;
+            float z1 = triStore[1].z;
+            float z2 = triStore[2].z;
+            if (tri.size) { dist = fmaxf(z0, fmaxf(z1, z2)); }
+            else { dist = fminf(z0, fminf(z1, z2)); }
+        } else {
+            dist = (fVect.x * fVect.x) + (fVect.y * fVect.y) + (fVect.z * fVect.z);
+        }
+        if (cam.farPlane && dist > cam.renderRadiusSq) continue;
+
+        newDist[newDistAmt++] = (ObjectOrdering){ .idx = newMesh.triCount, .obj = O_Triangle, .dist = dist };
+        newMesh.tris[newMesh.triCount++] = (Triangle_t){ .p0 = triStore[0], .p1 = triStore[1], .p2 = triStore[2], .color = tri.color };
+    }
+
+    if (newDistAmt > 1) quickSortIndices(newDist, 0, newDistAmt - 1);
+
+    for (int t=0; t < newDistAmt; t++) { renderTriangle(newMesh.tris[newDist[t].idx], cam); }
 }
 
 void computeCamData(Camera_t *cam) {
     computeCamMatrix(&cam->matrix, -cam->rot.x, -cam->rot.y, -cam->rot.z);
     cam->focal = 1.0f / tanf(cam->fov * 0.5f);
     cam->renderRadiusSq = cam->farPlane ? (cam->farPlane * cam->farPlane) : 0.0f;
+}
+
+void draw_tris(Camera_t cam, Objects_t *objects, MeshAnimations *allAnims) {
+    if (fullMesh.tris == NULL || triDist == NULL) return;
+
+    if (triDistAmt > 1) quickSortIndices(triDist, 0, triDistAmt - 1);
+    for (int t=0; t < triDistAmt; t++) {
+        if (triDist[t].obj == O_Triangle) {
+            renderTriangle(fullMesh.tris[triDist[t].idx], cam);
+        } else if (triDist[t].obj == O_Object) {
+            int index = triDist[t].idx;
+            Objects_t *obj = &objects[index];
+            Mesh modelObj = allAnims[obj->modelID].ModelAnimations[obj->currentAnim][obj->currentFrame].ModelFrame;
+
+            computeMatrixModel(&modelObj, obj->rot, obj->size);
+            add_mesh_obj(modelObj, obj->pos, cam, true);
+        }
+    }
+
+    fullMesh.triCount = 0;
+    triDistAmt = 0;
 }
