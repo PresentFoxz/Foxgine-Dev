@@ -25,6 +25,9 @@ Mesh chunkMesh[CHUNK_AMT];
 Chunk_t chunkData[CHUNK_AMT];
 Vec3i chunkRadius[CHUNK_AMT];
 
+MeshAnimations *animModels;
+Objects_t *objList;
+
 static int update(void* userdata);
 
 const int MAIN_SCREEN_W = 400;
@@ -112,7 +115,12 @@ static int init() {
 
     perlinInit(245773891241230);
 
-    pd->system->logToConsole("Ran init function!");
+    animModels = fox_malloc(sizeof(MeshAnimations) * 1);
+    objList = fox_malloc(sizeof(Objects_t) * 1);
+
+    // objList[0] = (Objects_t){.pos = (Vec3f){0, -7, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
+    // load_animation(&animModels[0], "mesh/chicken/anim.vul");
+    // add_objCount(1);
     return 0;
 }
 
@@ -188,7 +196,10 @@ static int update(void* userdata) {
             (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z},
             cam, false
         );
-    } draw_tris(cam);
+    } 
+
+    // add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
+    draw_tris(cam, objList, animModels);
 
     lastChunk = currChunk;
     
