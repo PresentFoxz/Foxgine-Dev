@@ -16,8 +16,8 @@ typedef FILE FileType;
 typedef uint32_t Pixel_t;
 
 static inline void* fox_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
-static inline void* fox_malloc(size_t size) { return realloc(NULL, size); }
-static inline void fox_free(void* ptr) { realloc(ptr, 0); }
+static inline void* fox_malloc(size_t size) { return malloc(size); }
+static inline void fox_free(void* ptr) { free(ptr); }
 
 static int fox_fgets(char *out, int maxLen, FileType *file) {
     if (fgets(out, maxLen, file) == NULL) return 0;
@@ -34,7 +34,7 @@ static int fox_fgets(char *out, int maxLen, FileType *file) {
 extern PlaydateAPI* pd;
 
 typedef SDFile FileType;
-typedef uint8_t Pixel_t;
+typedef uint16_t Pixel_t;
 
 static inline void* fox_realloc(void* ptr, size_t size) { return pd->system->realloc(ptr, size); }
 static inline void* fox_malloc(size_t size) { return pd->system->realloc(NULL, size); }
@@ -53,6 +53,27 @@ static int fox_fgets(char *out, int maxLen, FileType *file) {
 
     out[i] = '\0';
     return i > 0;
+}
+
+#elif defined(POCKETBYTE_SDK)
+
+#include "pocketbyte.h"
+#include "gfx_pax.h"
+
+typedef FILE FileType;
+typedef uint16_t Pixel_t;
+
+static inline void* fox_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
+static inline void* fox_malloc(size_t size) { return malloc(size); }
+static inline void fox_free(void* ptr) { free(ptr); }
+
+static int fox_fgets(char *out, int maxLen, FILE *file) {
+    if (fgets(out, maxLen, file) == NULL) return 0;
+
+    int len = strlen(out);
+    if (len > 0 && out[len-1] == '\n') { out[len-1] = '\0'; }
+
+    return len;
 }
 
 #endif

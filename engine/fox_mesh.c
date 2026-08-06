@@ -33,7 +33,7 @@ void load_mesh(Mesh *meshModel, char *filename) {
         pd->system->logToConsole("Failed to open %s\n", filename);
         return;
     }
-    #else
+    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
     FileType *file = fopen(filename, "r");
     if(!file) {
         printf("Failed to open %s\n", filename);
@@ -52,7 +52,7 @@ void load_mesh(Mesh *meshModel, char *filename) {
 
     #ifdef PLAYDATE_SDK
     pd->file->seek(file, 0, SEEK_SET);
-    #else
+    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
     rewind(file);
     #endif
 
@@ -82,9 +82,12 @@ void load_mesh(Mesh *meshModel, char *filename) {
             meshModel->tris[ti].b = b;
             meshModel->tris[ti].c = c;
 
+            #ifdef PLAYDATE_SDK
             meshModel->tris[ti].color = color;
+            #else
+            meshModel->tris[ti].color = color_to_pixel(color);
+            #endif
             meshModel->tris[ti].bfc = bfc ? false : true;
-
 
             Vec3f face[3] = { meshModel->verts[a], meshModel->verts[b], meshModel->verts[c] };
             meshModel->tris[ti].normal = computeNormal(face);
@@ -114,7 +117,7 @@ void load_mesh(Mesh *meshModel, char *filename) {
     #ifdef PLAYDATE_SDK
     pd->file->close(file);
     pd->system->logToConsole("Grabbed Mesh: %s | Tri Count: %d\n", filename, meshModel->triCount);
-    #else
+    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
     fclose(file);
     printf("Grabbed Mesh: %s | Tri Count: %d\n", filename, meshModel->triCount);
     #endif
@@ -133,7 +136,7 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
         pd->system->logToConsole("Failed to open %s\n", filename);
         return;
     }
-    #else
+    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
     FileType *file = fopen(filename, "r");
     if(!file) {
         printf("Failed to open %s\n", filename);
@@ -160,7 +163,7 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
 
     #ifdef PLAYDATE_SDK
     pd->file->seek(file, 0, SEEK_SET);
-    #else
+    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
     rewind(file);
     #endif
 
@@ -173,7 +176,7 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
 
         #ifdef PLAYDATE_SDK
         pd->file->close(file);
-        #else
+        #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
         fclose(file);
         #endif
 
@@ -231,7 +234,7 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
 
     #ifdef PLAYDATE_SDK
     pd->file->close(file);
-    #else
+    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
     fclose(file);
     #endif
 }

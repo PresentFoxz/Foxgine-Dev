@@ -7,10 +7,29 @@ uint8_t paletteIndex = 0;
 Pixel_t color_to_pixel(uint8_t c) { return c; }
 static uint8_t pixel_to_brightness(Pixel_t pixel) { return pixel; }
 
-#else
+#elif defined(PLATFORM_WIN)
 
 Pixel_t color_to_pixel(uint8_t c) { return (255u << 24) | (c << 16) | (c << 8) | c; }
 static uint8_t pixel_to_brightness(Pixel_t pixel) { return pixel & 0xFF; }
+
+#elif defined(POCKETBYTE_SDK)
+
+Pixel_t color_to_pixel(uint8_t c) {
+    uint16_t pixel = ((c >> 3) << 11) | ((c >> 2) << 5) | (c >> 3);
+    return (Pixel_t)((pixel >> 8) | (pixel << 8));
+}
+
+static uint8_t pixel_to_brightness(Pixel_t pixel) {
+    uint8_t r = (pixel >> 11) & 0x1F;
+    uint8_t g = (pixel >> 5)  & 0x3F;
+    uint8_t b =  pixel        & 0x1F;
+
+    r = (r << 3) | (r >> 2);
+    g = (g << 2) | (g >> 4);
+    b = (b << 3) | (b >> 2);
+
+    return g;
+}
 
 #endif
 
@@ -41,7 +60,13 @@ void clear_buf(Pixel_t col) {
         if (((y / interlaceAmt) & 1) != interlace && canInterlace) continue;
 
         Pixel_t *row = &mainBuffer[y * SCREEN_W];
-        for (int x=0; x < SCREEN_W; x++) { row[x] = dither(col, x, y); }
+        for (int x=0; x < SCREEN_W; x++) {
+            #ifdef PLAYDATE_SDK
+            row[x] = dither(col, x, y);
+            #else
+            row[x] = col;
+            #endif
+        }
     }
 }
 
@@ -60,7 +85,13 @@ static inline void draw_strip(int x1, int x2, int y, Pixel_t col) {
 
     Pixel_t *dst = &mainBuffer[y * SCREEN_W + x1];
     int count = x2 - x1 + 1;
-    for(int x = 0; x < count; x++) { dst[x] = dither(col, x1 + x, y); }
+    for(int x = 0; x < count; x++) {
+        #ifdef PLAYDATE_SDK
+        dst[x] = dither(col, x, y);
+        #else
+        dst[x] = col;
+        #endif
+    }
 }
 
 void draw_rect(int x, int y, int w, int h, Pixel_t col) {
