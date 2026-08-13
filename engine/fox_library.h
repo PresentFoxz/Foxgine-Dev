@@ -34,7 +34,7 @@ static int fox_fgets(char *out, int maxLen, FileType *file) {
 extern PlaydateAPI* pd;
 
 typedef SDFile FileType;
-typedef uint16_t Pixel_t;
+typedef uint8_t Pixel_t;
 
 static inline void* fox_realloc(void* ptr, size_t size) { return pd->system->realloc(ptr, size); }
 static inline void* fox_malloc(size_t size) { return pd->system->realloc(NULL, size); }

@@ -84,4 +84,8 @@ typedef struct {
     float distMod;
 } Objects_t;
 
+typedef struct {
+    uint8_t r, g, b, a;
+} Color_t;
+
 #endif

@@ -93,7 +93,8 @@ static void create_chunks(Vec3i offset) {
         if (chunkMesh[i].triCount <= 0) { chunkData[i].renderable = false; continue; }
         add_triCount(chunkMesh[i].triCount);
         renderable++;
-    } add_triCount(12);
+    }
+    add_triCount(12);
     alloc_mesh();
 }
 

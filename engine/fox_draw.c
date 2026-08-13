@@ -4,31 +4,47 @@ uint8_t paletteIndex = 0;
 
 #ifdef PLAYDATE_SDK
 
-Pixel_t color_to_pixel(uint8_t c) { return c; }
+Pixel_t color_to_pixel(Color_t color) {
+    if (color.a == 0) return 0;
+    uint16_t brightness = ((uint16_t)color.r * 77 + (uint16_t)color.g * 150 + (uint16_t)color.b * 29) >> 8;
+    return (Pixel_t)brightness;
+}
 static uint8_t pixel_to_brightness(Pixel_t pixel) { return pixel; }
 
 #elif defined(PLATFORM_WIN)
 
-Pixel_t color_to_pixel(uint8_t c) { return (255u << 24) | (c << 16) | (c << 8) | c; }
-static uint8_t pixel_to_brightness(Pixel_t pixel) { return pixel & 0xFF; }
+Pixel_t color_to_pixel(Color_t color) {
+    return ((uint32_t)color.a << 24) | ((uint32_t)color.r << 16) | ((uint32_t)color.g << 8) | ((uint32_t)color.b);
+}
+static uint8_t pixel_to_brightness(Pixel_t pixel) {
+    uint8_t r = (pixel >> 16) & 0xFF;
+    uint8_t g = (pixel >> 8)  & 0xFF;
+    uint8_t b =  pixel        & 0xFF;
+
+    return (uint8_t)(((uint16_t)r * 77 + (uint16_t)g * 150 + (uint16_t)b * 29) >> 8);
+}
 
 #elif defined(POCKETBYTE_SDK)
 
-Pixel_t color_to_pixel(uint8_t c) {
-    uint16_t pixel = ((c >> 3) << 11) | ((c >> 2) << 5) | (c >> 3);
+Pixel_t color_to_pixel(Color_t color) {
+    (void)color.a;
+
+    uint16_t pixel = ((uint16_t)(color.r >> 3) << 11) | ((uint16_t)(color.g >> 2) << 5)  | ((uint16_t)(color.b >> 3));
     return (Pixel_t)((pixel >> 8) | (pixel << 8));
 }
 
 static uint8_t pixel_to_brightness(Pixel_t pixel) {
-    uint8_t r = (pixel >> 11) & 0x1F;
-    uint8_t g = (pixel >> 5)  & 0x3F;
-    uint8_t b =  pixel        & 0x1F;
+    uint16_t p = (uint16_t)((pixel >> 8) | (pixel << 8));
+
+    uint8_t r = (p >> 11) & 0x1F;
+    uint8_t g = (p >> 5)  & 0x3F;
+    uint8_t b =  p        & 0x1F;
 
     r = (r << 3) | (r >> 2);
     g = (g << 2) | (g >> 4);
     b = (b << 3) | (b >> 2);
 
-    return g;
+    return (uint8_t)(((uint16_t)r * 77 + (uint16_t)g * 150 + (uint16_t)b * 29) >> 8);
 }
 
 #endif
@@ -44,7 +60,7 @@ static Pixel_t dither(Pixel_t value, int x, int y) {
     };
 
     Pixel_t threshold = bayer4x4[y & 3][x & 3] * 16;
-    return (pixel > threshold) ? color_to_pixel(255) : color_to_pixel(0);
+    return (pixel > threshold) ? color_to_pixel((Color_t){255, 255, 255, 255}) : color_to_pixel((Color_t){0, 0, 0, 255});
 }
 
 void draw_pixel(int x, int y, Pixel_t col) {

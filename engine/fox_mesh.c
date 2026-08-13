@@ -73,23 +73,38 @@ void load_mesh(Mesh *meshModel, char *filename) {
 
 
         else if(line[0] == 'f') {
-            int a,b,c;
-            int color,bfc;
+            int t0, t1, t2;
+            int r, g, b, a;
+            int bfc;
 
-            sscanf(line, "f %d %d %d %d %d", &a, &b, &c, &color, &bfc);
+            int result = sscanf(
+                line,
+                "f %d %d %d %d %d %d %d %d",
+                &t0, &t1, &t2,
+                &r, &g, &b, &a,
+                &bfc
+            );
 
-            meshModel->tris[ti].a = a;
-            meshModel->tris[ti].b = b;
-            meshModel->tris[ti].c = c;
+            if(result != 8) {
+                printf("Invalid face: %s\n", line);
+                continue;
+            }
 
-            #ifdef PLAYDATE_SDK
-            meshModel->tris[ti].color = color;
-            #else
+            Color_t color = {
+                (uint8_t)r,
+                (uint8_t)g,
+                (uint8_t)b,
+                (uint8_t)a
+            };
+
+            meshModel->tris[ti].a = t0;
+            meshModel->tris[ti].b = t1;
+            meshModel->tris[ti].c = t2;
+
             meshModel->tris[ti].color = color_to_pixel(color);
-            #endif
             meshModel->tris[ti].bfc = bfc ? false : true;
 
-            Vec3f face[3] = { meshModel->verts[a], meshModel->verts[b], meshModel->verts[c] };
+            Vec3f face[3] = { meshModel->verts[t0], meshModel->verts[t1], meshModel->verts[t2] };
             meshModel->tris[ti].normal = computeNormal(face);
             
             float e1x = face[0].x - face[1].x;

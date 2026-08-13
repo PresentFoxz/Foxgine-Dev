@@ -33,7 +33,7 @@ def convert_obj(input_file, output_file):
         out.write("\n")
 
         for a, b, c, color, bfc in triangles:
-            out.write(f"f {a} {b} {c} {color} {bfc}\n")
+            out.write(f"f {a} {b} {c} {color} {color} {color} {255} {bfc}\n")
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:

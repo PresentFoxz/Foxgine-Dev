@@ -5,7 +5,7 @@
 #include "fox_structs.h"
 #include "fox_mesh.h"
 
-Pixel_t color_to_pixel(uint8_t c);
+Pixel_t color_to_pixel(Color_t color);
 
 void clear_buf(Pixel_t col);
 void draw_tri(TriRend_t tri, Pixel_t col);

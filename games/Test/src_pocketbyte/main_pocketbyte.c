@@ -46,12 +46,28 @@ static void init() {
 static void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {
     for (int y = 0; y < dstHeight; y++) {
         for (int x = 0; x < dstWidth; x++) {
-            int srcX = y * srcWidth / dstHeight;
+            int srcX = (srcWidth - 1) - (y * srcWidth / dstHeight);
             int srcY = x * srcHeight / dstWidth;
-
+            
             dst[y * dstWidth + x] = src[srcY * srcWidth + srcX];
         }
     }
+}
+
+static void run_game() {
+    float deltaTime = pb_timing_delta_time();
+    
+    interlace ^= 1;
+    clear_buf(color_to_pixel((Color_t){0, 0, 0, 255}));
+
+    move_camera(&cam, deltaTime);
+    computeCamData(&cam);
+
+    computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
+    add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, false);
+    add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
+
+    draw_tris(cam, objList, animModels);
 }
 
 void app_main(void) {
@@ -68,21 +84,9 @@ void app_main(void) {
     screenBuffer = (Pixel_t *)pax_buf_get_pixels_rw(gfx);
     if (!screenBuffer) return;
 
-    while (pb_timing_loop(60)) {
+    while (pb_timing_loop(FPS)) {
         pb_gamepad_poll();
-        float deltaTime = pb_timing_delta_time();
-
-        interlace ^= 1;
-        clear_buf(color_to_pixel(0));
-
-        move_camera(&cam, deltaTime);
-        computeCamData(&cam);
-
-        computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
-        add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, false);
-        add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
-
-        draw_tris(cam, objList, animModels);
+        run_game();
 
         scale_buffer(mainBuffer, SCREEN_W, SCREEN_H, screenBuffer, MAIN_SCREEN_W, MAIN_SCREEN_H);
         pb_gfx_pax_flush();
