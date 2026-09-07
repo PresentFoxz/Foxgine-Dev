@@ -1,7 +1,10 @@
 #include "fox_mesh.h"
 #include "fox_draw.h"
 
-static Vec3f computeNormal(Vec3f tri[3]) {
+#define FLT_MAX 3.402823466e+38F
+#define FLT_MIN -3.402823466e+38F
+
+Vec3f computeNormal(Vec3f tri[3]) {
     Vec3f edge1, edge2;
     edge1.x = tri[1].x - tri[0].x;
     edge1.y = tri[1].y - tri[0].y;
@@ -26,6 +29,32 @@ static Vec3f computeNormal(Vec3f tri[3]) {
     return normal;
 }
 
+void computeMeshBounds(Mesh *mesh) {
+    MeshBounds bounds = {
+        .min = { FLT_MAX, FLT_MAX, FLT_MAX },
+        .max = { -FLT_MAX, -FLT_MAX, -FLT_MAX }
+    };
+
+    for (uint32_t i = 0; i < mesh->vertCount; i++) {
+        Vec3f v = mesh->verts[i];
+        if (v.x < bounds.min.x) bounds.min.x = v.x;
+        if (v.y < bounds.min.y) bounds.min.y = v.y;
+        if (v.z < bounds.min.z) bounds.min.z = v.z;
+
+        if (v.x > bounds.max.x) bounds.max.x = v.x;
+        if (v.y > bounds.max.y) bounds.max.y = v.y;
+        if (v.z > bounds.max.z) bounds.max.z = v.z;
+    }
+
+    for (int i=0; i < 8; i++) {
+        mesh->aabb[i].x = (i & 1) ? bounds.max.x : bounds.min.x;
+        mesh->aabb[i].y = (i & 2) ? bounds.max.y : bounds.min.y;
+        mesh->aabb[i].z = (i & 4) ? bounds.max.z : bounds.min.z;
+    }
+
+    mesh->bounds = bounds;
+}
+
 void load_mesh(Mesh *meshModel, char *filename) {
     #ifdef PLAYDATE_SDK
     FileType *file = pd->file->open(filename, kFileRead | kFileReadData);
@@ -33,7 +62,7 @@ void load_mesh(Mesh *meshModel, char *filename) {
         pd->system->logToConsole("Failed to open %s\n", filename);
         return;
     }
-    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
+    #else
     FileType *file = fopen(filename, "r");
     if(!file) {
         printf("Failed to open %s\n", filename);
@@ -52,7 +81,7 @@ void load_mesh(Mesh *meshModel, char *filename) {
 
     #ifdef PLAYDATE_SDK
     pd->file->seek(file, 0, SEEK_SET);
-    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
+    #else
     rewind(file);
     #endif
 
@@ -127,12 +156,14 @@ void load_mesh(Mesh *meshModel, char *filename) {
             meshModel->tris[ti].size = (biggestEdge > 4.0f);
             ti++;
         }
-    } 
+    }
+
+    computeMeshBounds(meshModel);
     
     #ifdef PLAYDATE_SDK
     pd->file->close(file);
     pd->system->logToConsole("Grabbed Mesh: %s | Tri Count: %d\n", filename, meshModel->triCount);
-    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
+    #else
     fclose(file);
     printf("Grabbed Mesh: %s | Tri Count: %d\n", filename, meshModel->triCount);
     #endif
@@ -151,7 +182,7 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
         pd->system->logToConsole("Failed to open %s\n", filename);
         return;
     }
-    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
+    #else
     FileType *file = fopen(filename, "r");
     if(!file) {
         printf("Failed to open %s\n", filename);
@@ -178,7 +209,7 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
 
     #ifdef PLAYDATE_SDK
     pd->file->seek(file, 0, SEEK_SET);
-    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
+    #else
     rewind(file);
     #endif
 
@@ -191,7 +222,7 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
 
         #ifdef PLAYDATE_SDK
         pd->file->close(file);
-        #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
+        #else
         fclose(file);
         #endif
 
@@ -249,7 +280,7 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
 
     #ifdef PLAYDATE_SDK
     pd->file->close(file);
-    #elif defined(PLATFORM_WIN) || defined(POCKETBYTE_SDK)
+    #else
     fclose(file);
     #endif
 }

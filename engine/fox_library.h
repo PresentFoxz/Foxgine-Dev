@@ -8,6 +8,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "fox_lut.h"
+
 #ifdef PLATFORM_WIN
 
 #include <SDL2/SDL.h>
@@ -62,6 +64,26 @@ static int fox_fgets(char *out, int maxLen, FileType *file) {
 
 typedef FILE FileType;
 typedef uint16_t Pixel_t;
+
+static inline void* fox_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
+static inline void* fox_malloc(size_t size) { return malloc(size); }
+static inline void fox_free(void* ptr) { free(ptr); }
+
+static int fox_fgets(char *out, int maxLen, FILE *file) {
+    if (fgets(out, maxLen, file) == NULL) return 0;
+
+    int len = strlen(out);
+    if (len > 0 && out[len-1] == '\n') { out[len-1] = '\0'; }
+
+    return len;
+}
+
+#elif defined(ESP_PLATFORM)
+
+#include "swadge.h"
+
+typedef FILE FileType;
+typedef paletteColor_t Pixel_t;
 
 static inline void* fox_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
 static inline void* fox_malloc(size_t size) { return malloc(size); }

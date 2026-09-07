@@ -76,6 +76,7 @@ static void check_inputs() {
 static void create_chunks(Vec3i offset) {
     reset_triCount();
     for (int i=0; i < CHUNK_AMT; i++) {
+        freeWorld(&chunkData[i]);
         Vec3i newOffset = {chunkRadius[i].x + offset.x, chunkRadius[i].y + offset.y, chunkRadius[i].z + offset.z};
         chunkData[i] = createWorld(newOffset);
         chunkData[i].pos = newOffset;
@@ -83,7 +84,6 @@ static void create_chunks(Vec3i offset) {
         freeMesh(&chunkMesh[i]);
     }
 
-    int renderable = 0;
     for (int i=0; i < CHUNK_AMT; i++) {
         if (!chunkData[i].renderable) continue;
         if (chunkData[i].LOD == 1) continue;
@@ -92,7 +92,6 @@ static void create_chunks(Vec3i offset) {
 
         if (chunkMesh[i].triCount <= 0) { chunkData[i].renderable = false; continue; }
         add_triCount(chunkMesh[i].triCount);
-        renderable++;
     }
     add_triCount(12);
     alloc_mesh();
@@ -102,12 +101,11 @@ static void reMesh_chunks() {
     reset_triCount();
     for (int i=0; i < CHUNK_AMT; i++) {
         if (chunkData[i].LOD != 0) continue;
-        chunkData[i].renderable = false;
+        chunkData[i].renderable = true;
 
         freeMesh(&chunkMesh[i]);
         chunkMesh[i] = mesh_create(chunkData[i], i, blockTypes);
-        if (chunkMesh[i].triCount > 0) { chunkData[i].renderable = true; }
-        if (!chunkData[i].renderable) { freeMesh(&chunkMesh[i]); continue; }
+        if (chunkMesh[i].triCount <= 0) { chunkData[i].renderable = false; freeMesh(&chunkMesh[i]); continue; }
 
         add_triCount(chunkMesh[i].triCount);
     }
@@ -140,20 +138,24 @@ static void run_game() {
     currChunk = (Vec3i){ floor_div(cam.pos.x, (BLOCK_X * BLOCK_SIZE)), floor_div(cam.pos.y, (BLOCK_Y * BLOCK_SIZE)), floor_div(cam.pos.z, (BLOCK_Z * BLOCK_SIZE)) };
     RayHit result = raycast(cam, currChunk);
 
-    if (inputs.just_MB1) { printf("MB1 Pressed!\n"); destroy_voxel(result); reMesh_chunks(); }
-    if (inputs.just_MB2) { printf("MB2 Pressed!\n"); }
+    if (result.block > 0) {
+        if (inputs.just_MB1) { printf("MB1 Pressed!\n"); destroy_voxel(result); reMesh_chunks(); }
+        if (inputs.just_MB2) { printf("MB2 Pressed!\n"); }
+    }
 
     if (lastChunk.x != currChunk.x || lastChunk.y != currChunk.y || lastChunk.z != currChunk.z) create_chunks(currChunk);
 
     // computeMatrixModel(&blockTypes[0], (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
     // add_mesh_scene(blockTypes[0], (Vec3f){0, 0, 0}, cam, false);
     for (int i=0; i < CHUNK_AMT; i++) {
+        Vec3f chunkPos = (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z};
         if (!chunkData[i].renderable) continue;
+        if (!check_renderable(&chunkMesh[i], cam, chunkPos)) { continue; }
         computeMatrixModel(&chunkMesh[i], (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
 
         add_mesh_scene(
             chunkMesh[i], 
-            (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z},
+            chunkPos,
             cam, false
         );
     }
@@ -170,8 +172,8 @@ static void init() {
     blockTypes = fox_malloc(1 * sizeof(Mesh));
 
     cam = (Camera_t){
-        .pos = (Vec3f){0.0f, 100.0f * BLOCK_SIZE, 0.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
-        .fov = 90.0f, .nearPlane = 0.001f, .farPlane = 1000.0f
+        .pos = (Vec3f){0.0f, 140.0f * BLOCK_SIZE, 0.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
+        .fov = DEG2RAD(90.0f), .nearPlane = 0.001f, .farPlane = 1000.0f
     };
 
     load_mesh(&blockTypes[0], "mesh/Cube.fox");

@@ -98,8 +98,8 @@ static int init() {
     blockTypes = fox_malloc(1 * sizeof(Mesh));
 
     cam = (Camera_t){
-        .pos = (Vec3f){0.0f, 100.0f * BLOCK_SIZE, 0.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
-        .fov = 90.0f, .nearPlane = 0.001f, .farPlane = 1000.0f
+        .pos = (Vec3f){0.0f, 140.0f * BLOCK_SIZE, 0.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
+        .fov = DEG2RAD(90.0f), .nearPlane = 0.001f, .farPlane = 1000.0f
     };
 
     load_mesh(&blockTypes[0], "mesh/Cube.fox");
@@ -177,7 +177,7 @@ static int update(void* userdata) {
     currChunk = (Vec3i){ floor_div(cam.pos.x, (BLOCK_X * BLOCK_SIZE)), floor_div(cam.pos.y, (BLOCK_Y * BLOCK_SIZE)), floor_div(cam.pos.z, (BLOCK_Z * BLOCK_SIZE)) };
     RayHit result = raycast(cam, currChunk);
 
-    if (result.hit){
+    if (result.hit && result.block > 0){
         destroy_voxel(result);
         reMesh_chunks();
     }
@@ -186,17 +186,18 @@ static int update(void* userdata) {
 
     // computeMatrixModel(&blockTypes[0], (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
     // add_mesh_scene(blockTypes[0], (Vec3f){0, 0, 0}, cam, false);
-    
     for (int i=0; i < CHUNK_AMT; i++) {
+        Vec3f chunkPos = (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z};
         if (!chunkData[i].renderable) continue;
+        if (!check_renderable(&chunkMesh[i], cam, chunkPos)) { continue; }
         computeMatrixModel(&chunkMesh[i], (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
 
         add_mesh_scene(
             chunkMesh[i], 
-            (Vec3f){(chunkData[i].pos.x * BLOCK_SIZE) * BLOCK_X, (chunkData[i].pos.y * BLOCK_SIZE) * BLOCK_Y, (chunkData[i].pos.z * BLOCK_SIZE) * BLOCK_Z},
+            chunkPos,
             cam, false
         );
-    } 
+    }
 
     // add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
     draw_tris(cam, objList, animModels);

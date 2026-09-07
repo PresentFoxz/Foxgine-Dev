@@ -27,6 +27,11 @@ typedef struct {
 } TriMesh;
 
 typedef struct {
+    Vec3f min;
+    Vec3f max;
+} MeshBounds;
+
+typedef struct {
     int a, b, c;
     Pixel_t color;
     Vec3f normal;
@@ -43,6 +48,9 @@ typedef struct {
 
     Mat3x3 matrix;
     bool rotated;
+
+    MeshBounds bounds;
+    Vec3f aabb[8];
 } Mesh;
 
 typedef struct {
@@ -83,5 +91,8 @@ typedef struct {
 
 void load_mesh(Mesh *meshModel, char *filename);
 void load_animation(MeshAnimations *animatedModel, char *filename);
+
+Vec3f computeNormal(Vec3f tri[3]);
+void computeMeshBounds(Mesh *mesh);
 
 #endif

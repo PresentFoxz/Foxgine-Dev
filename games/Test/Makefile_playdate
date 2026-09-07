@@ -249,7 +249,7 @@ PDC = $(PLAYDATE_SDK_PATH)/bin/pdc.exe
 
 MESH_SRC = mesh
 
-sim: sim_build/pdex.dll
+pd_sim: sim_build/pdex.dll
 	@echo "Building simulator PDX..."
 	rm -rf $(CUSFOLDER)
 	mkdir -p $(CUSFOLDER)/pdex
@@ -262,7 +262,7 @@ sim: sim_build/pdex.dll
 	rm -rf $(CUSFOLDER)
 	rm -rf sim_build
 
-dev: device_build/pdex.elf
+pd_dev: device_build/pdex.elf
 	@echo "Building device PDX..."
 	rm -rf $(CUDFOLDER)
 	mkdir -p $(CUDFOLDER)/pdex

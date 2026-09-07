@@ -12,6 +12,10 @@ typedef struct {
 } Vec3f;
 
 typedef struct {
+    float x, y, z, w;
+} Vec4;
+
+typedef struct {
     int x, y;
 } Vec2i;
 
@@ -22,6 +26,14 @@ typedef struct {
 typedef struct {
     float x[3][3];
 } Mat3x3;
+
+typedef struct {
+    float x[4][4];
+} Mat4x4;
+
+typedef struct {
+    Vec4 row;
+} Plane4;
 
 typedef struct {
     int width;
@@ -65,6 +77,8 @@ typedef struct {
     Mat3x3 matrix;
 
     int prevCrank;
+    Plane4 planesW[6];
+    Plane4 planesL[6];
 } Camera_t;
 
 typedef struct {

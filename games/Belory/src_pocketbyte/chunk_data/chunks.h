@@ -24,9 +24,9 @@ typedef struct {
     bool renderable;
 } Chunk_t;
 
-#define CHUNK_X 1
-#define CHUNK_Y 1
-#define CHUNK_Z 1
+#define CHUNK_X 3
+#define CHUNK_Y 3
+#define CHUNK_Z 3
 
 #define RANGE_X ((CHUNK_X * 2) + 1)
 #define RANGE_Y ((CHUNK_Y * 2) + 1)
@@ -163,6 +163,7 @@ static inline Mesh mesh_create(Chunk_t chunkData, int chunkID, Mesh *meshTypes) 
         }
     }
 
+    computeMeshBounds(&chunkMesh);
     return chunkMesh;
 }
 
@@ -219,6 +220,13 @@ static int getBlock(float x, float y, float z){
 
     float surfaceY = baseHeight + peakFactor - e * t.erosionStrength + localVariation;
     return (y < surfaceY) ? 1 : 0;
+}
+
+static void freeWorld(Chunk_t *worldGen) {
+    for (int i = 0; i < BLOCK_COUNT; i++) { worldGen->blocks[i] = 0; }
+    worldGen->pos = (Vec3i){0, 0, 0};
+    worldGen->renderable = false;
+    worldGen->LOD = 0;
 }
 
 static Chunk_t createWorld(Vec3i worldPos) {
@@ -278,10 +286,11 @@ static RayHit raycast(Camera_t cam, Vec3i currChunk) {
 
     Vec3f worldOrigin = cam.pos;
 
+    float block_lut = div_lut_check(BLOCK_SIZE);
     Vec3f voxelOrigin = {
-        worldOrigin.x / (float)BLOCK_SIZE,
-        worldOrigin.y / (float)BLOCK_SIZE,
-        worldOrigin.z / (float)BLOCK_SIZE
+        worldOrigin.x * block_lut,
+        worldOrigin.y * block_lut,
+        worldOrigin.z * block_lut
     };
 
     float yaw = cam.rot.y;
@@ -319,7 +328,7 @@ static RayHit raycast(Camera_t cam, Vec3i currChunk) {
     if (direction.x > RAY_EPSILON) { stepX = 1; }
     else if (direction.x < -RAY_EPSILON) { stepX = -1; }
 
-    if (direction.y > RAY_EPSILON) { stepY = 1; } 
+    if (direction.y > RAY_EPSILON) { stepY = 1; }
     else if (direction.y < -RAY_EPSILON) { stepY = -1; }
 
     if (direction.z > RAY_EPSILON) { stepZ = 1; }
@@ -348,7 +357,7 @@ static RayHit raycast(Camera_t cam, Vec3i currChunk) {
     float distance = 0.0f;
     Vec3i enteredNormal = {0, 0, 0};
 
-    float maxDistance = RAY_DIST / (float)BLOCK_SIZE;
+    float maxDistance = RAY_DIST * block_lut;
     while (distance <= maxDistance) {
         Vec3i worldChunk = voxelToChunk(voxelX, voxelY, voxelZ);
 

@@ -47,6 +47,16 @@ static uint8_t pixel_to_brightness(Pixel_t pixel) {
     return (uint8_t)(((uint16_t)r * 77 + (uint16_t)g * 150 + (uint16_t)b * 29) >> 8);
 }
 
+#elif defined(ESP_PLATFORM)
+
+Pixel_t color_to_pixel(Color_t color) {
+    uint32_t rgbValue = ((uint32_t)color.a << 24) | ((uint32_t)color.r << 16) | ((uint32_t)color.g << 8) | ((uint32_t)color.b);
+
+    return RGBtoPalette(rgbValue);
+}
+
+static uint8_t pixel_to_brightness(Pixel_t pixel) { return pixel; }
+
 #endif
 
 static Pixel_t dither(Pixel_t value, int x, int y) {
@@ -64,7 +74,7 @@ static Pixel_t dither(Pixel_t value, int x, int y) {
 }
 
 void draw_pixel(int x, int y, Pixel_t col) {
-    if (((y / interlaceAmt) & 1) != interlace && canInterlace) return;
+    if ((((int)(y * div_lut_check(interlaceAmt))) & 1) != interlace && canInterlace) return;
     if (y < 0 || y >= SCREEN_H) return;
     if (x < 0 || x >= SCREEN_W) return;
 
@@ -73,7 +83,7 @@ void draw_pixel(int x, int y, Pixel_t col) {
 
 void clear_buf(Pixel_t col) {
     for (int y=0; y < SCREEN_H; y++) {
-        if (((y / interlaceAmt) & 1) != interlace && canInterlace) continue;
+        if ((((int)(y * div_lut_check(interlaceAmt))) & 1) != interlace && canInterlace) continue;
 
         Pixel_t *row = &mainBuffer[y * SCREEN_W];
         for (int x=0; x < SCREEN_W; x++) {
@@ -134,12 +144,12 @@ void draw_tri(TriRend_t tri, Pixel_t col) {
 
     if (dy02 == 0) return;
 
-    float dx02 = (float)(v2.x - v0.x) / dy02;
+    float dx02 = (float)(v2.x - v0.x) * div_lut_check(dy02);
     float dx01 = 0;
     float dx12 = 0;
 
-    if (dy01) dx01 = (float)(v1.x - v0.x) / dy01;
-    if (dy12) dx12 = (float)(v2.x - v1.x) / dy12;
+    if (dy01) dx01 = (float)(v1.x - v0.x) * div_lut_check(dy01);
+    if (dy12) dx12 = (float)(v2.x - v1.x) * div_lut_check(dy12);
 
     float xA = v0.x;
     float xB = v0.x;

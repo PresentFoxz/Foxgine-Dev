@@ -71,10 +71,14 @@ static void run_game() {
     computeCamData(&cam);
 
     computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
-    add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, false);
-    add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
-
+    if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, false); }
+    else { printf("Map not Renderable!"); }
+    if (check_renderable(&animModels[objList[0].modelID].ModelAnimations[objList[0].currentAnim][objList[0].currentFrame].ModelFrame, cam, objList[0].pos)) { add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0); }
+    else { printf("Object not Renderable!"); }
     draw_tris(cam, objList, animModels);
+
+    draw_bounds(cam, &map, objList[0].pos);
+    draw_bounds(cam, &animModels[objList[0].modelID].ModelAnimations[objList[0].currentAnim][objList[0].currentFrame].ModelFrame, objList[0].pos);
 }
 
 static void init() {
@@ -83,7 +87,7 @@ static void init() {
 
     cam = (Camera_t){
         .pos = (Vec3f){0.0f, 0.0f, -2.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
-        .fov = 90.0f, .nearPlane = 0.001f, .farPlane = 1000.0f
+        .fov = DEG2RAD(90.0f), .nearPlane = 0.001f, .farPlane = 1000.0f
     };
 
     load_mesh(&map, "mesh/Castle.fox");
@@ -97,11 +101,11 @@ static void init() {
 }
 
 static void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {
-    int yStep = (srcHeight << 16) / dstHeight;
+    int yStep = (int)((srcHeight << 16) * div_lut_check(dstHeight));
 
     int srcY = 0;
     for (int y = 0; y < dstHeight; y++) {
-        int xStep = (srcWidth << 16) / dstWidth;
+        int xStep = (int)((srcWidth  << 16) * div_lut_check(dstWidth));
         int srcX = 0;
 
         Pixel_t *srcRow = src + ((srcY >> 16) * srcWidth);
@@ -165,8 +169,8 @@ int main(int argc, char* argv[]) {
             pause = !pause;
 
             if (!pause) {
-                int centerX = MAIN_SCREEN_W / 2;
-                int centerY = MAIN_SCREEN_H / 2;
+                int centerX = (int)(MAIN_SCREEN_W * div_lut_check(2));
+                int centerY = (int)(MAIN_SCREEN_H * div_lut_check(2));
 
                 SDL_WarpMouseInWindow(window, centerX, centerY);
             }

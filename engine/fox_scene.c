@@ -40,12 +40,76 @@ void alloc_mesh() {
 
     fullMesh.triCount = 0;
     triDistAmt = 0;
+}
 
-    #ifdef PLAYDATE_SDK
-    pd->system->logToConsole("Allocation complete!");
-    #else
-    printf("Allocation complete!");
-    #endif
+#define EPSILON 1
+bool check_renderable(Mesh *mesh, Camera_t cam, Vec3f addBoundPos) {
+    if (!mesh) return false;
+    if (mesh->vertCount <= 0 || mesh->triCount <= 0) return false;
+
+    MeshBounds bounds = {
+        .min = {
+            mesh->bounds.min.x + addBoundPos.x,
+            mesh->bounds.min.y + addBoundPos.y,
+            mesh->bounds.min.z + addBoundPos.z
+        },
+
+        .max = {
+            mesh->bounds.max.x + addBoundPos.x,
+            mesh->bounds.max.y + addBoundPos.y,
+            mesh->bounds.max.z + addBoundPos.z
+        }
+    };
+
+    Vec3f closest = cam.pos;
+    if (closest.x < bounds.min.x) closest.x = bounds.min.x;
+    if (closest.y < bounds.min.y) closest.y = bounds.min.y;
+    if (closest.z < bounds.min.z) closest.z = bounds.min.z;
+
+    if (closest.x > bounds.max.x) closest.x = bounds.max.x;
+    if (closest.y > bounds.max.y) closest.y = bounds.max.y;
+    if (closest.z > bounds.max.z) closest.z = bounds.max.z;
+
+    if (closest.x == cam.pos.x && closest.y == cam.pos.y && closest.z == cam.pos.z) { return true; }
+
+    Vec3f relative = { closest.x - cam.pos.x, closest.y - cam.pos.y, closest.z - cam.pos.z };
+    float distSq = relative.x * relative.x + relative.y * relative.y + relative.z * relative.z;
+    if (cam.farPlane && distSq > cam.renderRadiusSq) { return false; }
+
+    rotateVertexInPlace(&closest, cam.pos, &cam.matrix);
+    if (closest.z > cam.nearPlane && closest.z <= cam.farPlane) { return true; }
+
+    for (int i = 0; i < 8; i++) {
+        Vec3f v = mesh->aabb[i];
+
+        v.x += addBoundPos.x;
+        v.y += addBoundPos.y;
+        v.z += addBoundPos.z;
+
+        rotateVertexInPlace(&v, cam.pos, &cam.matrix);
+        if (v.z > cam.nearPlane && v.z <= cam.farPlane) { return true; }
+    }
+
+    return false;
+}
+
+void draw_bounds(Camera_t cam, Mesh *mesh, Vec3f addBoundPos) {
+    if (!mesh) return;
+
+    for (int i = 0; i < 8; i++) {
+        Vec3f v = mesh->aabb[i];
+
+        v.x += addBoundPos.x;
+        v.y += addBoundPos.y;
+        v.z += addBoundPos.z;
+
+        rotateVertexInPlace(&v, cam.pos, &cam.matrix);
+        Vec2i p = vert_to_screen(v, cam.focal, cam.nearPlane);
+
+        if (p.x < 0 || p.x >= SCREEN_W || p.y < 0 || p.y >= SCREEN_H) continue;
+        
+        draw_rect(p.x - 2, p.y - 2, 4, 4, color_to_pixel((Color_t){255, 0, 0, 255}));
+    }
 }
 
 static void quickSortIndices(ObjectOrdering *triSort, int left, int right) {
@@ -117,9 +181,6 @@ void add_obj_scene(Vec3f pos, float distMod, Camera_t cam, int idx) {
     float newDist = (dist - distMod);
     if (newDist < 0.001f) newDist = 0.002f;
     if (cam.farPlane && newDist > cam.renderRadiusSq) return;
-
-    Vec2i screenPos = vert_to_screen(camSpace, cam.focal, cam.nearPlane);
-    if (screenPos.x < 0 || screenPos.x >= SCREEN_W || screenPos.y < 0 || screenPos.y >= SCREEN_H) return;
 
     triDist[triDistAmt++] = (ObjectOrdering){ .idx = idx, .obj = O_Object, .dist = newDist };
 }
@@ -253,7 +314,7 @@ void add_mesh_obj(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
 
 void computeCamData(Camera_t *cam) {
     computeCamMatrix(&cam->matrix, -cam->rot.x, -cam->rot.y, -cam->rot.z);
-    cam->focal = 1.0f / tanf(cam->fov * 0.5f);
+    cam->focal = div_lut_check(tanf(cam->fov * 0.5f));
     cam->renderRadiusSq = cam->farPlane ? (cam->farPlane * cam->farPlane) : 0.0f;
 }
 

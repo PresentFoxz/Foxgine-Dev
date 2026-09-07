@@ -7,8 +7,11 @@ Vec2i vert_to_screen(Vec3f v, float focal, float nearPlane) {
     float z = v.z;
     if (z < nearPlane + EPSILON) z = nearPlane + EPSILON;
 
-    float x = (v.x * focal) / z;
-    float y = (v.y * focal) / z;
+    int index = (int)(z * LUT_PRECISION);
+    float invZ = div_lut_check(index) * LUT_PRECISION;
+
+    float x = (v.x * focal) * invZ;
+    float y = (v.y * focal) * invZ;
 
     out.x = (int)((x + 1.0f) * (SCREEN_W * 0.5f));
     out.y = (int)((1.0f - y) * (SCREEN_H * 0.5f));
@@ -48,7 +51,7 @@ int TriangleClipping(Vec3f verts[3], Triangle_t* outTri1, Triangle_t* outTri2, f
     int inScreen[3], outScreen[3];
     int inAmt = 0, outAmt = 0;
 
-    for (int i = 0; i < 3; i++)  {
+    for (int i = 0; i < 3; i++) {
         if (verts[i].z >= nearPlane && verts[i].z <= farPlane) { inScreen[inAmt++] = i; }
         else { outScreen[outAmt++] = i; }
     }
@@ -70,8 +73,8 @@ int TriangleClipping(Vec3f verts[3], Triangle_t* outTri1, Triangle_t* outTri2, f
         float plane0 = (verts[out0].z < nearPlane) ? nearPlane : farPlane;
         float plane1 = (verts[out1].z < nearPlane) ? nearPlane : farPlane;
 
-        float t0 = (plane0 - verts[out0].z) / (verts[in0].z - verts[out0].z);
-        float t1 = (plane1 - verts[out1].z) / (verts[in0].z - verts[out1].z);
+        float t0 = (plane0 - verts[out0].z) * div_lut_check(verts[in0].z - verts[out0].z);
+        float t1 = (plane1 - verts[out1].z) * div_lut_check(verts[in0].z - verts[out1].z);
 
         cross0 = lerpVertex(verts[out0], verts[in0], t0);
         cross1 = lerpVertex(verts[out1], verts[in0], t1);
@@ -87,8 +90,8 @@ int TriangleClipping(Vec3f verts[3], Triangle_t* outTri1, Triangle_t* outTri2, f
     if (inAmt == 2) {
         float plane = (verts[out0].z < nearPlane) ? nearPlane : farPlane;
 
-        float t0 = (plane - verts[out0].z) / (verts[in0].z - verts[out0].z);
-        float t1 = (plane - verts[out0].z) / (verts[in1].z - verts[out0].z);
+        float t0 = (plane - verts[out0].z) * div_lut_check(verts[in0].z - verts[out0].z);
+        float t1 = (plane - verts[out0].z) * div_lut_check(verts[in1].z - verts[out0].z);
 
         cross0 = lerpVertex(verts[out0], verts[in0], t0);
         cross1 = lerpVertex(verts[out0], verts[in1], t1);

@@ -30,7 +30,7 @@ static void init() {
 
     cam = (Camera_t){
         .pos = (Vec3f){0.0f, 0.0f, -2.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
-        .fov = 90.0f, .nearPlane = 0.001f, .farPlane = 1000.0f
+        .fov = DEG2RAD(90.0f), .nearPlane = 0.001f, .farPlane = 1000.0f
     };
 
     load_mesh(&map, "mesh/Castle.fox");
@@ -64,8 +64,8 @@ static void run_game() {
     computeCamData(&cam);
 
     computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
-    add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, false);
-    add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
+    if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, false); }
+    if (check_renderable(&animModels[objList[0].modelID].ModelAnimations[objList[0].currentAnim][objList[0].currentFrame].ModelFrame, cam, (Vec3f){0, 0, 0})) { add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0); }
 
     draw_tris(cam, objList, animModels);
 }

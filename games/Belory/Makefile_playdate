@@ -24,9 +24,6 @@
 #
 # TL_PATH is where ARM SDK is installed, e.g.:
 # "C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.3 rel1\bin"
-
-.PHONY: sim dev clean
-
 ifeq ($(PLAYDATE_SDK_PATH),)
 $(error need to set PLAYDATE_SDK_PATH environment)
 endif
@@ -160,9 +157,9 @@ $(DEVICE_BUILD_DIR)/engine/%.o: ../../engine/%.c
 $(BUILD_DIR)/%.o: %.c $(wildcard *.h) | make_build_dir
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(DEVICE_BUILD_DIR)/main_playdate.o: main_playdate.c $(wildcard *.h) $(BUILD_DIR)/version.txt | make_device_build_dir
+$(DEVICE_BUILD_DIR)/main.o: main.c $(wildcard *.h) $(BUILD_DIR)/version.txt | make_device_build_dir
 
-$(SIM_BUILD_DIR)/main_playdate.o: main_playdate.c $(wildcard *.h) $(BUILD_DIR)/version.txt | make_sim_build_dir
+$(SIM_BUILD_DIR)/main.o: main.c $(wildcard *.h) $(BUILD_DIR)/version.txt | make_sim_build_dir
 
 $(DEVICE_BUILD_DIR)/slime.o: slime.c $(wildcard *.h) $(BUILD_DIR)/velocity_table.txt | make_device_build_dir
 
@@ -246,13 +243,13 @@ $(BUILD_DIR)/inline_constants.test_passed: inline_constants.pl inline_constants_
 $(BUILD_DIR)/strip_lua.test_passed: strip_lua.pl strip_lua_test.sh
 	./strip_lua_test.sh $< && touch $@
 
-CUSFOLDER = Foxgine-sim
-CUDFOLDER = Foxgine-dev
+CUSFOLDER = Belory-sim
+CUDFOLDER = Belory-dev
 PDC = $(PLAYDATE_SDK_PATH)/bin/pdc.exe
 
 MESH_SRC = mesh
 
-sim: sim_build/pdex.dll
+pd_sim: sim_build/pdex.dll
 	@echo "Building simulator PDX..."
 	rm -rf $(CUSFOLDER)
 	mkdir -p $(CUSFOLDER)/pdex
@@ -260,12 +257,12 @@ sim: sim_build/pdex.dll
 	cp src_playdate/pdxinfo $(CUSFOLDER)/
 	cp -r $(MESH_SRC) $(CUSFOLDER)/
 	cp sim_build/pdex.dll $(CUSFOLDER)/
-	$(PDC) $(CUSFOLDER) Foxgine-sim.pdx
+	$(PDC) $(CUSFOLDER) Belory-sim.pdx
 
 	rm -rf $(CUSFOLDER)
 	rm -rf sim_build
 
-dev: device_build/pdex.elf
+pd_dev: device_build/pdex.elf
 	@echo "Building device PDX..."
 	rm -rf $(CUDFOLDER)
 	mkdir -p $(CUDFOLDER)/pdex
@@ -277,8 +274,8 @@ dev: device_build/pdex.elf
 	cp device_build/pdex_unstripped.elf save_elf
 	cp device_build/pdex.elf save_elf
 
-	$(PDC) $(CUDFOLDER) Foxgine-dev.pdx
-	zip -r Foxgine.pdx.zip Foxgine-dev.pdx
+	$(PDC) $(CUDFOLDER) Belory-dev.pdx
+	zip -r Belory.pdx.zip Belory-dev.pdx
 
 	rm -rf $(CUDFOLDER)
 	rm -rf device_build
