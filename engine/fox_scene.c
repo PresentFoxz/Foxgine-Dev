@@ -244,7 +244,7 @@ void add_mesh_scene(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
     }
 }
 
-void add_mesh_obj(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
+void add_mesh_obj(Mesh model, Vec3f pos, Vec3f rot, Vec3f size, Camera_t cam, bool vertUse) {
     RendMesh newMesh;
     ObjectOrdering *newDist;
     int newDistAmt = 0;
@@ -331,7 +331,7 @@ void draw_tris(Camera_t cam, Objects_t *objects, MeshAnimations *allAnims) {
             Mesh modelObj = allAnims[obj->modelID].ModelAnimations[obj->currentAnim][obj->currentFrame].ModelFrame;
 
             computeMatrixModel(&modelObj, obj->rot, obj->size);
-            add_mesh_obj(modelObj, obj->pos, cam, true);
+            add_mesh_obj(modelObj, obj->pos, obj->rot, obj->size, cam, true);
         }
     }
 

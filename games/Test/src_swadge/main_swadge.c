@@ -14,7 +14,6 @@ Pixel_t *screenBuffer;
 int interlace = 0;
 int interlaceAmt = 1;
 bool canInterlace = true;
-bool pause = false;
 
 Mesh map;
 MeshAnimations *animModels;

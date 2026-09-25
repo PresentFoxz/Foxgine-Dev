@@ -1,0 +1,8 @@
+# Chicken Animation Index
+
+Animations 1
+
+# Idle
+StartAnim 1
+Frame mesh/chicken/cube.fox 1
+EndAnim

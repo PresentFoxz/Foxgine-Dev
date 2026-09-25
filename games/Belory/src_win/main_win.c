@@ -28,6 +28,7 @@ Vec3i chunkRadius[CHUNK_AMT];
 
 MeshAnimations *animModels;
 Objects_t *objList;
+Objects_t player;
 
 SDL_Window* window;
 Uint64 lastTime;
@@ -132,7 +133,10 @@ static void run_game() {
     check_inputs();
 
     Vec2i newPos = mouse_move(window, pause);
-    if (!pause) { move_camera(&cam, inputs, newPos, pause, deltaTime); }
+    if (!pause) {
+        move_camera(&cam, inputs, newPos, pause, deltaTime, true);
+        move_player(&player, cam, inputs, deltaTime);
+    }
     computeCamData(&cam);
 
     currChunk = (Vec3i){ floor_div(cam.pos.x, (BLOCK_X * BLOCK_SIZE)), floor_div(cam.pos.y, (BLOCK_Y * BLOCK_SIZE)), floor_div(cam.pos.z, (BLOCK_Z * BLOCK_SIZE)) };
@@ -160,7 +164,8 @@ static void run_game() {
         );
     }
     
-    // add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
+    objList[0] = player;
+    add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
     draw_tris(cam, objList, animModels);
 
     lastChunk = currChunk;
@@ -172,9 +177,11 @@ static void init() {
     blockTypes = fox_malloc(1 * sizeof(Mesh));
 
     cam = (Camera_t){
-        .pos = (Vec3f){0.0f, 140.0f * BLOCK_SIZE, 0.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
-        .fov = DEG2RAD(90.0f), .nearPlane = 0.001f, .farPlane = 1000.0f
+        .pos = (Vec3f){0, 140 * BLOCK_SIZE, 0}, .rot = (Vec3f){0, 0, 0},
+        .fov = DEG2RAD(90), .nearPlane = 0.001f, .farPlane = 1000
     };
+
+    player = (Objects_t){.pos = (Vec3f){0, 140 * BLOCK_SIZE, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 2, 1}, .modelID = 0, .distMod = 50};
 
     load_mesh(&blockTypes[0], "mesh/Cube.fox");
 
@@ -191,10 +198,8 @@ static void init() {
 
     animModels = fox_malloc(sizeof(MeshAnimations) * 1);
     objList = fox_malloc(sizeof(Objects_t) * 1);
-
-    // objList[0] = (Objects_t){.pos = (Vec3f){0, -7, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
-    // load_animation(&animModels[0], "mesh/chicken/anim.vul");
-    // add_objCount(1);
+    load_animation(&animModels[0], "mesh/chicken/anim.vul");
+    add_objCount(1);
 }
 
 static void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {
