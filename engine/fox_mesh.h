@@ -84,6 +84,7 @@ typedef enum {
 
 typedef struct {
     int idx;
+    MODEL_SCENE type;
     float dist;
 
     ObjectType obj;

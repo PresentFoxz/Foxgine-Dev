@@ -85,4 +85,21 @@ static inline float div_lut_check(int value) {
     return sign * recip;
 }
 
+static inline float div_lut_float(float value) {
+    if (value == 0.0f) return INFINITY;
+    if (!isfinite(value)) return 0.0f;
+
+    int exponent;
+    float mantissa = frexpf(fabsf(value), &exponent);
+    float lookupPos = mantissa * 512.0f;
+    int index = (int)lookupPos;
+    float fraction = lookupPos - index;
+
+    float inv0 = div_lut_check(index);
+    float inv1 = div_lut_check(index + 1);
+    float reciprocal = ldexpf((inv0 + (inv1-inv0)*fraction)*512.0f, -exponent);
+
+    return copysignf(reciprocal, value);
+}
+
 #endif

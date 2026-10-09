@@ -12,12 +12,12 @@ void reset_objCount();
 
 bool check_renderable(Mesh *mesh, Camera_t cam, Vec3f addBoundPos);
 void add_mesh_scene(Mesh model, Vec3f pos, Camera_t cam, bool vertUse);
-void add_obj_scene(Vec3f pos, float distMod, Camera_t cam, int idx);
+void add_obj_scene(Vec3f pos, float distMod, Camera_t cam, int idx, MODEL_SCENE type);
 void add_mesh_obj(Mesh model, Vec3f pos, Vec3f rot, Vec3f size, Camera_t cam, bool vertUse);
 
 void draw_bounds(Camera_t cam, Mesh *mesh, Vec3f addBoundPos);
 void computeMatrixModel(Mesh *model, Vec3f rot, Vec3f size);
-void draw_tris(Camera_t cam, Objects_t *objects, MeshAnimations *allAnims);
+void draw_tris(Camera_t cam, Objects_t *objects, Entity_t* entities, Entity_t player, MeshAnimations *allAnims);
 void computeCamData(Camera_t *cam);
 
 #endif

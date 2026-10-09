@@ -158,8 +158,8 @@ void renderTriangle(Triangle_t tri3D, Camera_t cam) {
             }
         } if (OOB) continue;
         
-        TriRend_t triRender = (TriRend_t){ .p0 = triSpace[0], .p1 = triSpace[1], .p2 = triSpace[2] };
-        draw_tri(triRender, col);
+        // draw_tri((TriRend_t){ .p0 = triSpace[0], .p1 = triSpace[1], .p2 = triSpace[2] }, col);
+        draw_tri_z((TriRend_t){ .p0 = triSpace[0], .p1 = triSpace[1], .p2 = triSpace[2] }, clipped[c].p0.z, clipped[c].p1.z, clipped[c].p2.z, col);
     }
 }
 
@@ -173,7 +173,7 @@ void computeMatrixModel(Mesh *model, Vec3f rot, Vec3f size) {
     }
 }
 
-void add_obj_scene(Vec3f pos, float distMod, Camera_t cam, int idx) {
+void add_obj_scene(Vec3f pos, float distMod, Camera_t cam, int idx, MODEL_SCENE type) {
     Vec3f camSpace = pos;
     rotateVertexInPlace(&camSpace, cam.pos, &cam.matrix);
 
@@ -182,7 +182,7 @@ void add_obj_scene(Vec3f pos, float distMod, Camera_t cam, int idx) {
     if (newDist < 0.001f) newDist = 0.002f;
     if (cam.farPlane && newDist > cam.renderRadiusSq) return;
 
-    triDist[triDistAmt++] = (ObjectOrdering){ .idx = idx, .obj = O_Object, .dist = newDist };
+    triDist[triDistAmt++] = (ObjectOrdering){ .idx = idx, .type = type, .obj = O_Object, .dist = newDist };
 }
 
 void add_mesh_scene(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
@@ -318,7 +318,7 @@ void computeCamData(Camera_t *cam) {
     cam->renderRadiusSq = cam->farPlane ? (cam->farPlane * cam->farPlane) : 0.0f;
 }
 
-void draw_tris(Camera_t cam, Objects_t *objects, MeshAnimations *allAnims) {
+void draw_tris(Camera_t cam, Objects_t *objects, Entity_t *entities, Entity_t player, MeshAnimations *allAnims) {
     if (fullMesh.tris == NULL || triDist == NULL) return;
 
     if (triDistAmt > 1) quickSortIndices(triDist, 0, triDistAmt - 1);
@@ -327,11 +327,25 @@ void draw_tris(Camera_t cam, Objects_t *objects, MeshAnimations *allAnims) {
             renderTriangle(fullMesh.tris[triDist[t].idx], cam);
         } else if (triDist[t].obj == O_Object) {
             int index = triDist[t].idx;
-            Objects_t *obj = &objects[index];
-            Mesh modelObj = allAnims[obj->modelID].ModelAnimations[obj->currentAnim][obj->currentFrame].ModelFrame;
+
+            Mesh modelObj;
+            Objects_t *obj = NULL;
+
+            if (triDist[t].type == OBJECT) {
+                if (objects == NULL || index < 0) continue;
+                obj = &objects[index];
+            } else if (triDist[t].type == ENTITY) {
+                if (entities == NULL || index < 0) continue;
+                obj = &entities[index].object;
+            } else if (triDist[t].type == PLAYER) {
+                obj = &player.object;
+            } else { continue; }
+            
+            if (allAnims == NULL) continue;
+            modelObj = allAnims[obj->modelID].ModelAnimations[obj->currentAnim][obj->currentFrame].ModelFrame;
 
             computeMatrixModel(&modelObj, obj->rot, obj->size);
-            add_mesh_obj(modelObj, obj->pos, obj->rot, obj->size, cam, true);
+            add_mesh_obj(modelObj, obj->pos, obj->rot, obj->size, cam, false);
         }
     }
 

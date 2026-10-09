@@ -110,6 +110,7 @@ extern Pixel_t *mainBuffer;
 extern int interlace;
 extern int interlaceAmt;
 extern bool canInterlace;
+extern float *zBuffer;
 
 #define DEG2RAD(x) ((x) * 0.0174532925f)
 

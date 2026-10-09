@@ -41,6 +41,34 @@ typedef struct {
     int8_t *pixels;
 } Screen;
 
+typedef struct {
+    Vec3f min, max;
+} MinMax3;
+
+typedef struct {
+    Vec2f min, max;
+} MinMax2;
+
+typedef struct {
+    Vec3f pos;
+    Vec3f normal;
+    Vec3f slopeNormal;
+    
+    int floor, ceiling, wall, slope;
+} VectMf;
+
+typedef struct {
+    Vec3f pos;
+    Vec3f size;
+    int type, id;
+} Triggers;
+
+typedef enum {
+    OBJECT,
+    ENTITY,
+    PLAYER
+} MODEL_SCENE;
+
 #ifdef PLATFORM_WIN
 typedef struct {
     bool up;
@@ -97,6 +125,24 @@ typedef struct {
     int currentFrame;
     float distMod;
 } Objects_t;
+
+typedef struct {
+    Objects_t object;
+
+    float speed;
+    float jumpPower;
+    float airSpeed;
+    float gravity;
+    float friction;
+    float airFriction;
+    float maxGrav;
+
+    int coyote;
+    int grounded;
+
+    float radius;
+    float height;
+} Entity_t;
 
 typedef struct {
     uint8_t r, g, b, a;

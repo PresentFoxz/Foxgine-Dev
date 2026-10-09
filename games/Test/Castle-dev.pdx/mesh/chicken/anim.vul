@@ -4,5 +4,6 @@ Animations 1
 
 # Idle
 StartAnim 1
-Frame mesh/chicken/cube.fox 1
+Frame mesh/chicken/chicken.fox 3
+Frame mesh/chicken/cube.fox 3
 EndAnim
