@@ -3,51 +3,27 @@
 
 #include <stdint.h>
 
-typedef struct {
-    float x, y;
-} Vec2f;
+typedef struct { uint8_t r, g, b, a; } Color_t;
 
-typedef struct {
-    float x, y, z;
-} Vec3f;
+typedef struct { float x, y; } Vec2f;
+typedef struct { float x, y, z; } Vec3f;
+typedef struct { float x, y, z, w; } Vec4;
 
-typedef struct {
-    float x, y, z, w;
-} Vec4;
+typedef struct { int x, y; } Vec2i;
+typedef struct { int x, y, z; } Vec3i;
 
-typedef struct {
-    int x, y;
-} Vec2i;
+typedef struct { float x[3][3]; } Mat3x3;
+typedef struct { float x[4][4]; } Mat4x4;
 
-typedef struct {
-    int x, y, z;
-} Vec3i;
-
-typedef struct {
-    float x[3][3];
-} Mat3x3;
-
-typedef struct {
-    float x[4][4];
-} Mat4x4;
-
-typedef struct {
-    Vec4 row;
-} Plane4;
+typedef struct { Vec4 row; } Plane4;
+typedef struct { Vec3f min, max; } MinMax3;
+typedef struct { Vec2f min, max; } MinMax2;
 
 typedef struct {
     int width;
     int height;
     int8_t *pixels;
 } Screen;
-
-typedef struct {
-    Vec3f min, max;
-} MinMax3;
-
-typedef struct {
-    Vec2f min, max;
-} MinMax2;
 
 typedef struct {
     Vec3f pos;
@@ -143,9 +119,5 @@ typedef struct {
     float radius;
     float height;
 } Entity_t;
-
-typedef struct {
-    uint8_t r, g, b, a;
-} Color_t;
 
 #endif

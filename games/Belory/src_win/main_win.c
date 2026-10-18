@@ -14,6 +14,8 @@ Uint32 frameStart;
 Uint32 frameTime;
 
 Camera_t cam;
+Entity_t player;
+
 Pixel_t *mainBuffer;
 Pixel_t *screenBuffer;
 int interlace = 0;
@@ -28,7 +30,9 @@ Vec3i chunkRadius[CHUNK_AMT];
 
 MeshAnimations *animModels;
 Objects_t *objList;
-Objects_t player;
+Entity_t *entList;
+int objMax = 1;
+int entMax = 0;
 
 SDL_Window* window;
 Uint64 lastTime;
@@ -38,6 +42,8 @@ const int MAIN_SCREEN_W = 1280;
 const int MAIN_SCREEN_H = 800;
 const int SCREEN_W = (MAIN_SCREEN_W / 2);
 const int SCREEN_H = (MAIN_SCREEN_H / 2);
+
+float *zBuffer = NULL;
 
 KeyInputs inputs = {0};
 static KeyInputs prevInputs = {0};
@@ -128,14 +134,14 @@ static void run_game() {
     }
 
     interlace ^= 1;
-    clear_buf(0);
+    clear_buf(0, cam.farPlane);
 
     check_inputs();
 
     Vec2i newPos = mouse_move(window, pause);
     if (!pause) {
-        move_camera(&cam, inputs, newPos, pause, deltaTime, true);
-        move_player(&player, cam, inputs, deltaTime);
+        move_camera(&cam, inputs, newPos, pause, deltaTime, false);
+        // move_player(&player, cam, inputs, deltaTime);
     }
     computeCamData(&cam);
 
@@ -163,10 +169,8 @@ static void run_game() {
             cam, false
         );
     }
-    
-    objList[0] = player;
-    add_obj_scene(objList[0].pos, objList[0].distMod, cam, 0);
-    draw_tris(cam, objList, animModels);
+
+    draw_tris(cam, objList, entList, player, animModels);
 
     lastChunk = currChunk;
 }
@@ -174,6 +178,7 @@ static void run_game() {
 static void init() {
     screenBuffer = fox_malloc(MAIN_SCREEN_W * MAIN_SCREEN_H * sizeof(Pixel_t));
     mainBuffer = fox_malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
+    zBuffer = fox_malloc(SCREEN_W * SCREEN_H * sizeof(float));
     blockTypes = fox_malloc(1 * sizeof(Mesh));
 
     cam = (Camera_t){
@@ -181,7 +186,11 @@ static void init() {
         .fov = DEG2RAD(90), .nearPlane = 0.001f, .farPlane = 1000
     };
 
-    player = (Objects_t){.pos = (Vec3f){0, 140 * BLOCK_SIZE, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 2, 1}, .modelID = 0, .distMod = 50};
+    player = (Entity_t){
+        .coyote = 0, .grounded = 0, .radius = 0.8, .height = 1.8,
+        .gravity = -5.8, .maxGrav = -20.36, .airFriction = 0, .airSpeed = 0, .friction = 0.95, .jumpPower = 0, .speed = 25.32,
+        .object = (Objects_t){.pos = (Vec3f){0, 10, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f}
+    };
 
     load_mesh(&blockTypes[0], "mesh/Cube.fox");
 
@@ -197,9 +206,11 @@ static void init() {
     perlinInit(245773891241230);
 
     animModels = fox_malloc(sizeof(MeshAnimations) * 1);
-    objList = fox_malloc(sizeof(Objects_t) * 1);
+    objList = fox_malloc(sizeof(Objects_t) * objMax);
+    entList = fox_malloc(sizeof(Entity_t) * entMax);
+
     load_animation(&animModels[0], "mesh/chicken/anim.vul");
-    add_objCount(1);
+    add_objCount(objMax + entMax + 1);
 }
 
 static void scale_buffer(Pixel_t *src, int srcWidth, int srcHeight, Pixel_t *dst, int dstWidth, int dstHeight) {
