@@ -243,8 +243,8 @@ $(BUILD_DIR)/inline_constants.test_passed: inline_constants.pl inline_constants_
 $(BUILD_DIR)/strip_lua.test_passed: strip_lua.pl strip_lua_test.sh
 	./strip_lua_test.sh $< && touch $@
 
-CUSFOLDER = Castle-sim
-CUDFOLDER = Castle-dev
+CUSFOLDER = Belay-sim
+CUDFOLDER = Belay-dev
 PDC = $(PLAYDATE_SDK_PATH)/bin/pdc.exe
 
 MESH_SRC = mesh
@@ -257,7 +257,7 @@ pd_sim: sim_build/pdex.dll
 	cp src_playdate/pdxinfo $(CUSFOLDER)/
 	cp -r $(MESH_SRC) $(CUSFOLDER)/
 	cp sim_build/pdex.dll $(CUSFOLDER)/
-	$(PDC) $(CUSFOLDER) Castle-sim.pdx
+	$(PDC) $(CUSFOLDER) Belay-sim.pdx
 
 	rm -rf $(CUSFOLDER)
 	rm -rf sim_build
@@ -274,8 +274,8 @@ pd_dev: device_build/pdex.elf
 	cp device_build/pdex_unstripped.elf save_elf
 	cp device_build/pdex.elf save_elf
 
-	$(PDC) $(CUDFOLDER) Castle-dev.pdx
-	zip -r Castle.pdx.zip Castle-dev.pdx
+	$(PDC) $(CUDFOLDER) Belay-dev.pdx
+	zip -r Belay.pdx.zip Belay-dev.pdx
 
 	rm -rf $(CUDFOLDER)
 	rm -rf device_build

@@ -1,0 +1,9 @@
+# Test Animation Index
+
+Animations 1
+
+# Idle
+StartAnim 2
+Frame Test_frames/Test_Idle_0000.fox 8
+Frame Test_frames/Test_Idle_0008.fox 8
+EndAnim

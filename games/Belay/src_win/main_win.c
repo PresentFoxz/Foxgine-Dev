@@ -68,18 +68,42 @@ static void check_inputs() {
     prevInputs = inputs;
 }
 
+bool title = true;
 static void run_game() {
     interlace ^= 1;
     clear_buf(0, cam.farPlane);
 
-    printf("SPAWN: Y = %.4f\n", player.object.pos.y);
-
     check_inputs();
+    if (title) {
+        cam.pos = (Vec3f){-2.0f, 25.0f, -40.0f};
+        cam.rot = (Vec3f){DEG2RAD(25.0f), 0.0f, 0.0f};
+
+        computeCamData(&cam);
+
+        computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
+        if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
+
+        draw_tris(cam, objList, entList, player, animModels);
+        draw_to_playdate();
+
+        pd->graphics->fillRect(0, 0, 20, 20, kColorWhite);
+        pd->system->drawFPS(2, 2);
+
+        if (inputs.jump) {
+            cam.pos = (Vec3f){0.0f, 0.0f, -2.0f};
+            cam.rot = (Vec3f){0.0f, 0.0f, 0.0f};
+            title = false;
+        }
+
+        return;
+    }
+
     Vec2i newPos = mouse_move(window, pause);
     if (!pause) { move_camera(&cam, inputs, newPos, pause, deltaTime); }
     computeCamData(&cam);
 
     move_player(&player, inputs, cam, deltaTime);
+    runAnimation(&player, animModels[player.object.modelID], deltaTime);
 
     computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
     if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
@@ -87,7 +111,7 @@ static void run_game() {
     for (int i=0; i < objMax; i++) {
         Objects_t obj = objList[i];
 
-        if (check_renderable(&animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.currentFrame].ModelFrame, cam, obj.pos)) {
+        if (check_renderable(&animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame, cam, obj.pos)) {
             add_obj_scene(obj.pos, obj.distMod, cam, 0, OBJECT);
         }
     }
@@ -96,19 +120,19 @@ static void run_game() {
         Entity_t ent = entList[i];
         Objects_t obj = ent.object;
 
-        if (check_renderable(&animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.currentFrame].ModelFrame, cam, obj.pos)) {
+        if (check_renderable(&animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame, cam, obj.pos)) {
             add_obj_scene(obj.pos, obj.distMod, cam, 0, ENTITY);
         }
     }
 
-    if (check_renderable(&animModels[player.object.modelID].ModelAnimations[player.object.currentAnim][player.object.currentFrame].ModelFrame, cam, player.object.pos)) {
+    if (check_renderable(&animModels[player.object.modelID].ModelAnimations[player.object.currentAnim][player.object.frameIDX].ModelFrame, cam, player.object.pos)) {
         add_obj_scene(player.object.pos, player.object.distMod, cam, 0, PLAYER);
     }
 
     draw_tris(cam, objList, entList, player, animModels);
 
     // draw_bounds(cam, &map, objList[0].pos);
-    // draw_bounds(cam, &animModels[objList[0].modelID].ModelAnimations[objList[0].currentAnim][objList[0].currentFrame].ModelFrame, objList[0].pos);
+    // draw_bounds(cam, &animModels[objList[0].modelID].ModelAnimations[objList[0].currentAnim][objList[0].frameIDX].ModelFrame, objList[0].pos);
 }
 
 static void init() {
@@ -123,7 +147,7 @@ static void init() {
     player = (Entity_t){
         .coyote = 0, .grounded = 0, .radius = 0.8, .height = 1.8,
         .gravity = -5.8, .maxGrav = -20.36, .airFriction = 0, .airSpeed = 0, .friction = 0.95, .jumpPower = 0, .speed = 25.32,
-        .object = (Objects_t){.pos = (Vec3f){0, 10, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f}
+        .object = (Objects_t){.pos = (Vec3f){0, 10, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .velocity = (Vec3f){0, 0, 0}, .modelID = 0, .distMod = 50.0f}
     };
 
     load_mesh(&map, "mesh/Castle.fox");
@@ -132,9 +156,9 @@ static void init() {
     objList = fox_malloc(sizeof(Objects_t) * objMax);
     entList = fox_malloc(sizeof(Entity_t) * entMax);
 
-    objList[0] = (Objects_t){.pos = (Vec3f){0, 0, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
+    // objList[0] = (Objects_t){.pos = (Vec3f){0, 0, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
 
-    load_animation(&animModels[0], "mesh/chicken/anim.vul");
+    load_animation(&animModels[0], "mesh/chicken/Test.vul");
     add_objCount(objMax + entMax + 1);
 
     resetCollisionSurface();

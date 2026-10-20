@@ -121,6 +121,25 @@ static inline void runCollision(Entity_t *ent, float dt) {
     }
 }
 
+static void runAnimation(Entity_t *ent, MeshAnimations mesh, float dt) {
+    Objects_t *obj = &ent->object;
+
+    obj->maxIDX = mesh.frameCounts[obj->currentAnim];
+    if (obj->maxIDX <= 0) return;
+
+    if (obj->frameIDX >= obj->maxIDX) obj->frameIDX = 0;
+
+    obj->maxFrames = mesh.ModelAnimations[obj->currentAnim][obj->frameIDX].heldFrameCount;
+    obj->currentFrame++;
+
+    if (obj->currentFrame >= obj->maxFrames) {
+        obj->currentFrame = 0;
+        obj->frameIDX++;
+
+        if (obj->frameIDX >= obj->maxIDX) obj->frameIDX = 0;
+    }
+}
+
 static void move_player(Entity_t *player, KeyInputs inputs, Camera_t cam, float dt) {
     float yaw = cam.rot.y;
     float moveSpd = player->speed * dt;

@@ -99,6 +99,10 @@ typedef struct {
     int modelID;
     int currentAnim;
     int currentFrame;
+    int maxFrames;
+    int frameIDX;
+    int maxIDX;
+    
     float distMod;
 } Objects_t;
 

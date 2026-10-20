@@ -342,7 +342,7 @@ void draw_tris(Camera_t cam, Objects_t *objects, Entity_t *entities, Entity_t pl
             } else { continue; }
             
             if (allAnims == NULL) continue;
-            modelObj = allAnims[obj->modelID].ModelAnimations[obj->currentAnim][obj->currentFrame].ModelFrame;
+            modelObj = allAnims[obj->modelID].ModelAnimations[obj->currentAnim][obj->frameIDX].ModelFrame;
 
             computeMatrixModel(&modelObj, obj->rot, obj->size);
             add_mesh_obj(modelObj, obj->pos, obj->rot, obj->size, cam, false);
