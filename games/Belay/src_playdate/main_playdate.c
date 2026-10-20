@@ -19,9 +19,12 @@ bool canInterlace = true;
 
 Mesh map;
 MeshAnimations *animModels;
+SpriteAnimList_t *animSprites;
 Objects_t *objList;
 Entity_t *entList;
-int objMax = 0;
+int modelMax = 1;
+int spriteMax = 0;
+int objMax = 1;
 int entMax = 0;
 
 static int update(void* userdata);
@@ -60,18 +63,19 @@ static int init() {
     player = (Entity_t){
         .coyote = 0, .grounded = 0, .radius = 0.8, .height = 1.8,
         .gravity = -5.8, .maxGrav = -20.36, .airFriction = 0, .airSpeed = 0, .friction = 0.95, .jumpPower = 0, .speed = 25.32,
-        .object = (Objects_t){.pos = (Vec3f){0, 10, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .velocity = (Vec3f){0, 0, 0}, .modelID = 0, .distMod = 50.0f}
+        .object = (Objects_t){.pos = (Vec3f){0, 10, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .velocity = (Vec3f){0, 0, 0}, .modelID = 0, .distMod = 50.0f, .isSprite = false}
     };
 
     load_mesh(&map, "mesh/Castle.fox");
 
-    animModels = fox_malloc(sizeof(MeshAnimations) * 1);
+    animModels = fox_malloc(sizeof(MeshAnimations) * modelMax);
+    animSprites = fox_malloc(sizeof(SpriteAnimList_t) * spriteMax);
     objList = fox_malloc(sizeof(Objects_t) * objMax);
     entList = fox_malloc(sizeof(Entity_t) * entMax);
 
     // objList[0] = (Objects_t){.pos = (Vec3f){0, 0, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
 
-    load_animation(&animModels[0], "mesh/chicken/Test.vul");
+    load_modelAnimation(&animModels[0], "mesh/chicken/Test.vul");
     add_objCount(objMax + entMax + 1);
 
     resetCollisionSurface();
@@ -82,7 +86,7 @@ static int init() {
     return 0;
 }
 
-static void draw_to_playdate() {
+static void scale_buffer() {
     screenBuffer = pd->graphics->getFrame();
 
     bool upscale = false;
@@ -109,20 +113,8 @@ static void draw_to_playdate() {
     pd->graphics->markUpdatedRows(0, MAIN_SCREEN_H - 1);
 }
 bool title = true;
-bool firstRun = true;
-static int update(void* userdata) {
-    if (firstRun) {
-        init();
-        
-        add_triCount(map.triCount);
-        alloc_mesh();
-        firstRun = false;
-        
-        return 1;
-    }
-
+static void run_game() {
     interlace ^= 1;
-    // pd->graphics->setDrawMode(kDrawModeFillWhite);
     clear_buf(0, cam.farPlane);
 
     float deltaTime = pd->system->getElapsedTime();
@@ -185,7 +177,24 @@ static int update(void* userdata) {
     }
 
     draw_tris(cam, objList, entList, player, animModels);
-    draw_to_playdate();
+}
+
+bool firstRun = true;
+static int update(void* userdata) {
+    if (firstRun) {
+        init();
+        
+        add_triCount(map.triCount);
+        alloc_mesh();
+        firstRun = false;
+
+        pd->graphics->setDrawMode(kDrawModeFillWhite);
+        
+        return 1;
+    }
+
+    run_game();
+    scale_buffer();
 
     pd->graphics->fillRect(0, 0, 20, 20, kColorWhite);
     pd->system->drawFPS(2, 2);

@@ -133,7 +133,7 @@ static int init() {
     objList = fox_malloc(sizeof(Objects_t) * objMax);
     entList = fox_malloc(sizeof(Entity_t) * entMax);
 
-    load_animation(&animModels[0], "mesh/chicken/anim.vul");
+    load_modelAnimation(&animModels[0], "mesh/chicken/anim.vul");
     add_objCount(objMax + entMax + 1);
     return 0;
 }

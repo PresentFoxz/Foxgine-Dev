@@ -28,8 +28,11 @@ float deltaTime;
 
 Mesh map;
 MeshAnimations *animModels;
+SpriteAnimList_t *animSprites;
 Objects_t *objList;
 Entity_t *entList;
+int modelMax = 1;
+int spriteMax = 0;
 int objMax = 1;
 int entMax = 0;
 
@@ -83,11 +86,7 @@ static void run_game() {
         computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
         if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
 
-        draw_tris(cam, objList, entList, player, animModels);
-        draw_to_playdate();
-
-        pd->graphics->fillRect(0, 0, 20, 20, kColorWhite);
-        pd->system->drawFPS(2, 2);
+        draw_tris(cam, objList, entList, player, animSprites, animModels);
 
         if (inputs.jump) {
             cam.pos = (Vec3f){0.0f, 0.0f, -2.0f};
@@ -129,7 +128,7 @@ static void run_game() {
         add_obj_scene(player.object.pos, player.object.distMod, cam, 0, PLAYER);
     }
 
-    draw_tris(cam, objList, entList, player, animModels);
+    draw_tris(cam, objList, entList, player, animSprites, animModels);
 
     // draw_bounds(cam, &map, objList[0].pos);
     // draw_bounds(cam, &animModels[objList[0].modelID].ModelAnimations[objList[0].currentAnim][objList[0].frameIDX].ModelFrame, objList[0].pos);
@@ -152,13 +151,14 @@ static void init() {
 
     load_mesh(&map, "mesh/Castle.fox");
 
-    animModels = fox_malloc(sizeof(MeshAnimations) * 1);
+    animModels = fox_malloc(sizeof(MeshAnimations) * modelMax);
+    animSprites = fox_malloc(sizeof(SpriteAnimList_t) * spriteMax);
     objList = fox_malloc(sizeof(Objects_t) * objMax);
     entList = fox_malloc(sizeof(Entity_t) * entMax);
 
     // objList[0] = (Objects_t){.pos = (Vec3f){0, 0, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
 
-    load_animation(&animModels[0], "mesh/chicken/Test.vul");
+    load_modelAnimation(&animModels[0], "mesh/chicken/Test.vul");
     add_objCount(objMax + entMax + 1);
 
     resetCollisionSurface();

@@ -52,7 +52,7 @@ static void init() {
 
     objList[0] = (Objects_t){.pos = (Vec3f){0, 0, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
 
-    load_animation(&animModels[0], "mesh/chicken/anim.vul");
+    load_modelAnimation(&animModels[0], "mesh/chicken/anim.vul");
     add_objCount(objMax + entMax + 1);
 }
 

@@ -17,7 +17,7 @@ void add_mesh_obj(Mesh model, Vec3f pos, Vec3f rot, Vec3f size, Camera_t cam, bo
 
 void draw_bounds(Camera_t cam, Mesh *mesh, Vec3f addBoundPos);
 void computeMatrixModel(Mesh *model, Vec3f rot, Vec3f size);
-void draw_tris(Camera_t cam, Objects_t *objects, Entity_t* entities, Entity_t player, MeshAnimations *allAnims);
+void draw_tris(Camera_t cam, Objects_t *objects, Entity_t *entities, Entity_t player, SpriteAnimList_t *Sprites, MeshAnimations *allAnims);
 void computeCamData(Camera_t *cam);
 
 #endif

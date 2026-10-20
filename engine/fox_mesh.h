@@ -90,8 +90,26 @@ typedef struct {
     ObjectType obj;
 } ObjectOrdering;
 
+typedef struct {
+    Pixel_t *pixel;
+    uint16_t width, height;
+} Sprite_t;
+
+typedef struct {
+    Sprite_t *frames;
+    uint16_t frameCount;
+} SpriteAnim_t;
+
+typedef struct {
+    Sprite_t **animations;
+    uint16_t animCount;
+} SpriteAnimList_t;
+
 void load_mesh(Mesh *meshModel, char *filename);
-void load_animation(MeshAnimations *animatedModel, char *filename);
+void load_modelAnimation(MeshAnimations *animatedModel, char *filename);
+
+void load_sprite(Sprite_t *sprite, char *filename);
+void load_spriteAnimation(SpriteAnimList_t *animatedSprite, char *filename);
 
 Vec3f computeNormal(Vec3f tri[3]);
 void computeMeshBounds(Mesh *mesh);

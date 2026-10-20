@@ -20,12 +20,6 @@ typedef struct { Vec3f min, max; } MinMax3;
 typedef struct { Vec2f min, max; } MinMax2;
 
 typedef struct {
-    int width;
-    int height;
-    int8_t *pixels;
-} Screen;
-
-typedef struct {
     Vec3f pos;
     Vec3f normal;
     Vec3f slopeNormal;
@@ -95,6 +89,8 @@ typedef struct {
     Vec3f fVect;
     Vec3f moveVect;
     Vec3f velocity;
+
+    bool isSprite;
 
     int modelID;
     int currentAnim;

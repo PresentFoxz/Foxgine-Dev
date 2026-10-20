@@ -58,17 +58,10 @@ void computeMeshBounds(Mesh *mesh) {
 void load_mesh(Mesh *meshModel, char *filename) {
     #ifdef PLAYDATE_SDK
     FileType *file = pd->file->open(filename, kFileRead | kFileReadData);
-    if(!file) {
-        pd->system->logToConsole("Failed to open %s\n", filename);
-        return;
-    }
     #else
     FileType *file = fopen(filename, "r");
-    if(!file) {
-        printf("Failed to open %s\n", filename);
-        return;
-    }
     #endif
+    if (!file) return;
 
     int verts = 0;
     int tris = 0;
@@ -169,7 +162,7 @@ void load_mesh(Mesh *meshModel, char *filename) {
     #endif
 }
 
-void load_animation(MeshAnimations *animatedModel, char *filename) {
+void load_modelAnimation(MeshAnimations *animatedModel, char *filename) {
     if (!animatedModel || !filename) return;
 
     animatedModel->ModelAnimations = NULL;
@@ -178,17 +171,10 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
 
     #ifdef PLAYDATE_SDK
     FileType *file = pd->file->open(filename, kFileRead | kFileReadData);
-    if(!file) {
-        pd->system->logToConsole("Failed to open %s\n", filename);
-        return;
-    }
     #else
     FileType *file = fopen(filename, "r");
-    if(!file) {
-        printf("Failed to open %s\n", filename);
-        return;
-    }
     #endif
+    if (!file) return;
 
     char line[128];
     int animCount = 0;
@@ -251,9 +237,7 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
             animatedModel->frameCounts[animIndex] = frameCount;
             currFrame = 0;
 
-            for (int i=0; i < frameCount; i++) {
-                animatedModel->ModelAnimations[animIndex][i] = (MeshFrame){0};
-            }
+            for (int i=0; i < frameCount; i++) { animatedModel->ModelAnimations[animIndex][i] = (MeshFrame){0}; }
 
             continue;
         }
@@ -283,4 +267,59 @@ void load_animation(MeshAnimations *animatedModel, char *filename) {
     #else
     fclose(file);
     #endif
+}
+
+void load_sprite(Sprite_t *sprite, char *filename) {
+    #ifdef PLAYDATE_SDK
+    FileType *file = pd->file->open(filename, kFileRead | kFileReadData);
+    #else
+    FileType *file = fopen(filename, "r");
+    #endif
+    if (!file) return;
+
+    Pixel_t *pixels;
+    uint16_t width;
+    uint16_t height;
+    size_t pixel_index = 0;
+
+    pixels = malloc(width * height * sizeof(Pixel_t));
+
+    char line[128];
+    while(fox_fgets(line, sizeof(line), file)) {
+        unsigned int w, h;
+        if (sscanf(line, "size %u %u", &w, &h) == 2) {
+            if (w == 0 || h == 0 || w > UINT16_MAX || h > UINT16_MAX || (size_t)w > SIZE_MAX / (size_t)h || (size_t)w * h > SIZE_MAX / sizeof(Pixel_t)) break;
+
+            width = (uint16_t)w;
+            height = (uint16_t)h;
+
+            pixels = malloc((size_t)width * height * sizeof(Pixel_t));
+            if (!pixels) break;
+
+            continue;
+        }
+
+        unsigned int r, g, b, a;
+        if (sscanf(line, "p %u %u %u %u", &r, &g, &b, &a) == 3) {
+            if (!pixels || pixel_index >= (size_t)width * height) break;
+            if (r > 255 || g > 255 || b > 255) break;
+
+            Color_t color = {
+                (uint8_t)r,
+                (uint8_t)g,
+                (uint8_t)b,
+                (uint8_t)a
+            };
+            pixels[pixel_index++] = color_to_pixel(color);
+        }
+    }
+}
+
+void load_spriteAnimation(SpriteAnimList_t *animatedSprite, char *filename) {
+    if (!animatedSprite || !filename) return;
+
+    animatedSprite->animations = NULL;
+    animatedSprite->animCount = 0;
+
+    return;
 }

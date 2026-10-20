@@ -318,7 +318,7 @@ void computeCamData(Camera_t *cam) {
     cam->renderRadiusSq = cam->farPlane ? (cam->farPlane * cam->farPlane) : 0.0f;
 }
 
-void draw_tris(Camera_t cam, Objects_t *objects, Entity_t *entities, Entity_t player, MeshAnimations *allAnims) {
+void draw_tris(Camera_t cam, Objects_t *objects, Entity_t *entities, Entity_t player, SpriteAnimList_t *Sprites, MeshAnimations *allAnims) {
     if (fullMesh.tris == NULL || triDist == NULL) return;
 
     if (triDistAmt > 1) quickSortIndices(triDist, 0, triDistAmt - 1);
