@@ -341,6 +341,8 @@ void draw_tris(Camera_t cam, Objects_t *objects, Entity_t *entities, Entity_t pl
                 obj = &player.object;
             } else { continue; }
             
+            if (obj->isSprite && Sprites == NULL) continue;
+
             if (allAnims == NULL) continue;
             modelObj = allAnims[obj->modelID].ModelAnimations[obj->currentAnim][obj->frameIDX].ModelFrame;
 

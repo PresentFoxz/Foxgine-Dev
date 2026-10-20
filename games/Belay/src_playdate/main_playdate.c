@@ -24,7 +24,7 @@ Objects_t *objList;
 Entity_t *entList;
 int modelMax = 1;
 int spriteMax = 0;
-int objMax = 1;
+int objMax = 0;
 int entMax = 0;
 
 static int update(void* userdata);
@@ -112,6 +112,7 @@ static void scale_buffer() {
 
     pd->graphics->markUpdatedRows(0, MAIN_SCREEN_H - 1);
 }
+
 bool title = true;
 static void run_game() {
     interlace ^= 1;
@@ -132,8 +133,8 @@ static void run_game() {
         computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
         if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
 
-        draw_tris(cam, objList, entList, player, animModels);
-        draw_to_playdate();
+        draw_tris(cam, objList, entList, player, animSprites, animModels);
+        scale_buffer();
 
         pd->graphics->fillRect(0, 0, 20, 20, kColorWhite);
         pd->system->drawFPS(2, 2);
@@ -143,7 +144,7 @@ static void run_game() {
             cam.rot = (Vec3f){0.0f, 0.0f, 0.0f};
             title = false;
         }
-        return 1;
+        return;
     }
 
     move_camera(&cam, deltaTime);
@@ -176,7 +177,7 @@ static void run_game() {
         add_obj_scene(player.object.pos, player.object.distMod, cam, 0, PLAYER);
     }
 
-    draw_tris(cam, objList, entList, player, animModels);
+    draw_tris(cam, objList, entList, player, animSprites, animModels);
 }
 
 bool firstRun = true;

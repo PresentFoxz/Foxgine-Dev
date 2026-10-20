@@ -2,6 +2,7 @@
 #define FOX_STRUCTS_H
 
 #include <stdint.h>
+#include <stdbool.h> 
 
 typedef struct { uint8_t r, g, b, a; } Color_t;
 
