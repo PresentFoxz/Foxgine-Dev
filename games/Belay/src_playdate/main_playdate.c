@@ -75,7 +75,7 @@ static int init() {
     };
 
     entList[0] = (Entity_t){
-        .coyote = 0, .grounded = 0, .radius = 0.8, .height = 1.8,
+        .coyote = 0, .grounded = 0, .radius = 1.8, .height = 4.8,
         .gravity = -5.8, .maxGrav = -20.36, .airFriction = 0, .airSpeed = 0, .friction = 0.95, .jumpPower = 0, .speed = 25.32,
         .object = (Objects_t){.pos = (Vec3f){0, 1, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .velocity = (Vec3f){0, 0, 0}, .modelID = 0, .distMod = 0.0f, .isSprite = false, .isAnimated = false}
     };
