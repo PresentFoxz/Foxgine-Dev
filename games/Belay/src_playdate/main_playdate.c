@@ -18,14 +18,16 @@ int interlaceAmt = 1;
 bool canInterlace = true;
 
 Mesh map;
+Mesh *modelObjects;
 MeshAnimations *animModels;
 SpriteAnimList_t *animSprites;
 Objects_t *objList;
 Entity_t *entList;
+int modelObjMax = 1;
 int modelMax = 1;
 int spriteMax = 0;
 int objMax = 0;
-int entMax = 0;
+int entMax = 1;
 
 static int update(void* userdata);
 
@@ -52,8 +54,14 @@ int eventHandler(PlaydateAPI* playdate, PDSystemEvent event, uint32_t arg) {
 
 static int init() {
     // screenBuffer = fox_malloc(MAIN_SCREEN_W * MAIN_SCREEN_H * sizeof(Pixel_t));
-    mainBuffer = fox_malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
-    zBuffer = fox_malloc(SCREEN_W * SCREEN_H * sizeof(float));
+    mainBuffer      = fox_malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
+    zBuffer         = fox_malloc(SCREEN_W * SCREEN_H * sizeof(float));
+
+    modelObjects = fox_malloc(sizeof(Mesh) * modelObjMax);
+    animModels   = fox_malloc(sizeof(MeshAnimations) * modelMax);
+    animSprites  = fox_malloc(sizeof(SpriteAnimList_t) * spriteMax);
+    objList      = fox_malloc(sizeof(Objects_t) * objMax);
+    entList      = fox_malloc(sizeof(Entity_t) * entMax);
 
     cam = (Camera_t){
         .pos = (Vec3f){0.0f, 0.0f, -2.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
@@ -63,26 +71,25 @@ static int init() {
     player = (Entity_t){
         .coyote = 0, .grounded = 0, .radius = 0.8, .height = 1.8,
         .gravity = -5.8, .maxGrav = -20.36, .airFriction = 0, .airSpeed = 0, .friction = 0.95, .jumpPower = 0, .speed = 25.32,
-        .object = (Objects_t){.pos = (Vec3f){0, 10, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .velocity = (Vec3f){0, 0, 0}, .modelID = 0, .distMod = 50.0f, .isSprite = false}
+        .object = (Objects_t){.pos = (Vec3f){0, 10, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .velocity = (Vec3f){0, 0, 0}, .modelID = 0, .distMod = 0.0f, .isSprite = false, .isAnimated = true}
     };
 
-    load_mesh(&map, "mesh/Castle.fox");
-
-    animModels = fox_malloc(sizeof(MeshAnimations) * modelMax);
-    animSprites = fox_malloc(sizeof(SpriteAnimList_t) * spriteMax);
-    objList = fox_malloc(sizeof(Objects_t) * objMax);
-    entList = fox_malloc(sizeof(Entity_t) * entMax);
+    entList[0] = (Entity_t){
+        .coyote = 0, .grounded = 0, .radius = 0.8, .height = 1.8,
+        .gravity = -5.8, .maxGrav = -20.36, .airFriction = 0, .airSpeed = 0, .friction = 0.95, .jumpPower = 0, .speed = 25.32,
+        .object = (Objects_t){.pos = (Vec3f){0, 1, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .velocity = (Vec3f){0, 0, 0}, .modelID = 0, .distMod = 0.0f, .isSprite = false, .isAnimated = false}
+    };
 
     // objList[0] = (Objects_t){.pos = (Vec3f){0, 0, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
 
+    load_mesh(&map, "mesh/Castle.fox");
+    load_mesh(&modelObjects[0], "mesh/Bob.fox");
     load_modelAnimation(&animModels[0], "mesh/chicken/Test.vul");
     add_objCount(objMax + entMax + 1);
 
     resetCollisionSurface();
 
     setupMapCollision(map, (Vec2f){0, 0});
-
-    pd->system->logToConsole("Ran init function!");
     return 0;
 }
 
@@ -133,7 +140,7 @@ static void run_game() {
         computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
         if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
 
-        draw_tris(cam, objList, entList, player, animSprites, animModels);
+        draw_tris(cam, objList, entList, player, animSprites, animModels, modelObjects);
         scale_buffer();
 
         pd->graphics->fillRect(0, 0, 20, 20, kColorWhite);
@@ -149,7 +156,10 @@ static void run_game() {
 
     for (int i=0; i < objMax; i++) {
         Objects_t obj = objList[i];
-        Mesh model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame;
+        Mesh model;
+    
+        if (obj.isAnimated) { model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame; }
+        else { model = modelObjects[obj.modelID]; }
 
         if (check_renderable(&model, cam, obj.pos)) { add_obj_scene(obj.pos, obj.distMod, cam, 0, OBJECT); }
     }
@@ -157,8 +167,12 @@ static void run_game() {
     for (int i=0; i < entMax; i++) {
         Entity_t ent = entList[i];
         Objects_t obj = ent.object;
+        Mesh model;
 
-        Mesh model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame;
+        move_entity(&entList[i], deltaTime);
+
+        if (obj.isAnimated) { model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame; }
+        else { model = modelObjects[obj.modelID]; }
 
         if (check_renderable(&model, cam, obj.pos)) { add_obj_scene(obj.pos, obj.distMod, cam, 0, ENTITY); }
     }
@@ -168,20 +182,23 @@ static void run_game() {
     move_player(&player, cam, deltaTime);
     runAnimation(&player, animModels[player.object.modelID], deltaTime);
 
-    Vec3f newCamPos = player.object.pos;  newCamPos.y += 2;
-    // move_cam_to(&cam, newCamPos);
+    Vec3f newCamPos = player.object.pos; newCamPos.y += 2;
+    move_cam_to(&cam, newCamPos);
     // move_camera(&cam, deltaTime);
     computeCamData(&cam);
 
     computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
     if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
 
-    Objects_t obj = player.object;
-    Mesh model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame;
+    // Objects_t obj = player.object;
+    // Mesh model;
 
-    if (check_renderable(&model, cam, obj.pos)) { add_obj_scene(obj.pos, obj.distMod, cam, 0, PLAYER); }
+    // if (obj.isAnimated) { model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame; }
+    // else { model = modelObjects[obj.modelID]; }
 
-    draw_tris(cam, objList, entList, player, animSprites, animModels);
+    // if (check_renderable(&model, cam, obj.pos)) { add_obj_scene(obj.pos, obj.distMod, cam, 0, PLAYER); }
+
+    draw_tris(cam, objList, entList, player, animSprites, animModels, modelObjects);
 }
 
 bool firstRun = true;
