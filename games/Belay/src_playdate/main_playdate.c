@@ -147,35 +147,39 @@ static void run_game() {
         return;
     }
 
-    move_camera(&cam, deltaTime);
-    computeCamData(&cam);
-
-    move_player(&player, cam, deltaTime);
-    runAnimation(&player, animModels[player.object.modelID], deltaTime);
-
-    computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
-    if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
-
     for (int i=0; i < objMax; i++) {
         Objects_t obj = objList[i];
+        Mesh model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame;
 
-        if (check_renderable(&animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame, cam, obj.pos)) {
-            add_obj_scene(obj.pos, obj.distMod, cam, 0, OBJECT);
-        }
+        if (check_renderable(&model, cam, obj.pos)) { add_obj_scene(obj.pos, obj.distMod, cam, 0, OBJECT); }
     }
 
     for (int i=0; i < entMax; i++) {
         Entity_t ent = entList[i];
         Objects_t obj = ent.object;
 
-        if (check_renderable(&animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame, cam, obj.pos)) {
-            add_obj_scene(obj.pos, obj.distMod, cam, 0, ENTITY);
-        }
-    }
+        Mesh model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame;
 
-    if (check_renderable(&animModels[player.object.modelID].ModelAnimations[player.object.currentAnim][player.object.frameIDX].ModelFrame, cam, player.object.pos)) {
-        add_obj_scene(player.object.pos, player.object.distMod, cam, 0, PLAYER);
+        if (check_renderable(&model, cam, obj.pos)) { add_obj_scene(obj.pos, obj.distMod, cam, 0, ENTITY); }
     }
+    
+    rotate_camera(&cam);
+
+    move_player(&player, cam, deltaTime);
+    runAnimation(&player, animModels[player.object.modelID], deltaTime);
+
+    Vec3f newCamPos = player.object.pos;  newCamPos.y += 2;
+    // move_cam_to(&cam, newCamPos);
+    // move_camera(&cam, deltaTime);
+    computeCamData(&cam);
+
+    computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
+    if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
+
+    Objects_t obj = player.object;
+    Mesh model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame;
+
+    if (check_renderable(&model, cam, obj.pos)) { add_obj_scene(obj.pos, obj.distMod, cam, 0, PLAYER); }
 
     draw_tris(cam, objList, entList, player, animSprites, animModels);
 }

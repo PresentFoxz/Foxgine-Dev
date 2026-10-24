@@ -9,9 +9,9 @@ static int maxTrianglesInScene = 0;
 static int maxObjectsInScene = 0;
 const float one_third = 0.33333333f;
 
-static RendMesh fullMesh;
-static ObjectOrdering *triDist;
-static int triDistAmt = 0;
+RendMesh fullMesh;
+ObjectOrdering *triDist;
+int triDistAmt = 0;
 
 void reset_triCount() { maxTrianglesInScene = 0; }
 void reset_objCount() { maxTrianglesInScene = 0; }
@@ -165,7 +165,7 @@ void renderTriangle(Triangle_t tri3D, Camera_t cam) {
 
 void computeMatrixModel(Mesh *model, Vec3f rot, Vec3f size) {
     model->rotated = false;
-    if (rot.x != 0 && rot.y != 0 && rot.z != 0) {
+    if (rot.x != 0 || rot.y != 0 || rot.z != 0) {
         if (size.x == 1.0f && size.y == 1.0f && size.z == 1.0f) { computeRotMatrix(&model->matrix, rot.x, rot.y, rot.z); }
         else { computeRotScaleMatrix(&model->matrix, rot.x, rot.y, rot.z, size.x, size.y, size.z); }
 
@@ -189,6 +189,8 @@ void add_mesh_scene(Mesh model, Vec3f pos, Camera_t cam, bool vertUse) {
     if (fullMesh.tris == NULL) return;
     if (triDist == NULL) return;
     if (fullMesh.triCount >= maxTrianglesInScene) return;
+
+    // if (rot.x != 0 || rot.y != 0 || rot.z != 0) { model.rotated = true; }
 
     bool triFacing = false;
     for (int t = 0; t < model.triCount; t++) {
@@ -318,10 +320,10 @@ void computeCamData(Camera_t *cam) {
     cam->renderRadiusSq = cam->farPlane ? (cam->farPlane * cam->farPlane) : 0.0f;
 }
 
-void draw_tris(Camera_t cam, Objects_t *objects, Entity_t *entities, Entity_t player, SpriteAnimList_t *Sprites, MeshAnimations *allAnims) {
+void draw_tris(Camera_t cam, Objects_t *objects, Entity_t *entities, Entity_t player, SpriteAnimList_t *AnimSprites, MeshAnimations *allAnims, Mesh *models) {
     if (fullMesh.tris == NULL || triDist == NULL) return;
 
-    if (triDistAmt > 1) quickSortIndices(triDist, 0, triDistAmt - 1);
+    // if (triDistAmt > 1) quickSortIndices(triDist, 0, triDistAmt - 1);
     for (int t=0; t < triDistAmt; t++) {
         if (triDist[t].obj == O_Triangle) {
             renderTriangle(fullMesh.tris[triDist[t].idx], cam);
@@ -341,10 +343,12 @@ void draw_tris(Camera_t cam, Objects_t *objects, Entity_t *entities, Entity_t pl
                 obj = &player.object;
             } else { continue; }
             
-            if (obj->isSprite && Sprites == NULL) continue;
+            if (obj->isSprite && AnimSprites == NULL) continue;
 
             if (allAnims == NULL) continue;
-            modelObj = allAnims[obj->modelID].ModelAnimations[obj->currentAnim][obj->frameIDX].ModelFrame;
+
+            if (obj->isAnimated) { modelObj = allAnims[obj->modelID].ModelAnimations[obj->currentAnim][obj->frameIDX].ModelFrame; }
+            else { modelObj = models[obj->modelID]; }
 
             computeMatrixModel(&modelObj, obj->rot, obj->size);
             add_mesh_obj(modelObj, obj->pos, obj->rot, obj->size, cam, false);

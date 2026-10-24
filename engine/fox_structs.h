@@ -92,7 +92,8 @@ typedef struct {
     Vec3f velocity;
 
     bool isSprite;
-
+    bool isAnimated;
+    
     int modelID;
     int currentAnim;
     int currentFrame;
