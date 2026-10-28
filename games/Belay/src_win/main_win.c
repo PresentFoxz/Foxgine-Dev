@@ -129,20 +129,20 @@ static void run_game() {
     runAnimation(&player, animModels[player.object.modelID], deltaTime);
 
     Vec3f newCamPos = player.object.pos;  newCamPos.y += 2;
-    // move_cam_to(&cam, newCamPos);
-    move_camera(&cam, inputs, deltaTime);
+    move_cam_to(&cam, newCamPos);
+    // move_camera(&cam, inputs, deltaTime);
     computeCamData(&cam);
 
     computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
     if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
 
-    Objects_t obj = player.object;
-    Mesh model;
+    // Objects_t obj = player.object;
+    // Mesh model;
     
-    if (obj.isAnimated) { model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame; }
-    else { model = modelObjects[obj.modelID]; }
+    // if (obj.isAnimated) { model = animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.frameIDX].ModelFrame; }
+    // else { model = modelObjects[obj.modelID]; }
 
-    if (check_renderable(&model, cam, obj.pos)) { add_obj_scene(obj.pos, obj.distMod, cam, 0, PLAYER); }
+    // if (check_renderable(&model, cam, obj.pos)) { add_obj_scene(obj.pos, obj.distMod, cam, 0, PLAYER); }
 
     draw_tris(cam, objList, entList, player, animSprites, animModels, modelObjects);
 

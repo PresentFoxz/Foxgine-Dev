@@ -1,0 +1,30 @@
+.PHONY: all run clean
+
+CC = gcc
+
+CFLAGS = -Wall -Wextra -g -I. -I../../engine -DPLATFORM_WIN
+LDFLAGS = -lmingw32 -lSDL2main -lSDL2
+
+MESH_DIR = mesh
+INCLUDES_DIR = ../../includes/windows
+
+TARGET = build_win/game.exe
+SRC = \
+	src_win/main_win.c \
+	../../engine/fox_draw.c \
+	../../engine/fox_scene.c \
+	../../engine/fox_mesh.c \
+	../../engine/fox_collision.c \
+	../../engine/fox_3D.c
+
+all:
+	mkdir -p build_win
+	cp -r $(MESH_DIR) build_win/
+	cp -r $(INCLUDES_DIR)/* build_win/
+	$(CC) $(SRC) -o $(TARGET) $(CFLAGS) $(LDFLAGS)
+
+run: all
+	./$(TARGET)
+
+clean:
+	rm -rf build_win

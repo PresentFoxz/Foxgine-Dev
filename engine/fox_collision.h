@@ -52,6 +52,7 @@ void addTriggers(Vec3f pos, Vec3f size, int type, int id);
 void addCollisionSurface(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, SurfaceType type);
 VectMf cylinderInTriangle(Vec3f pos, float radius, float height);
 Triggers cylinderInTrigger(Vec3f pos, float radius, float height);
+bool hasCollidableTriangleBelow(Vec3f pos, float height);
 void setupMapCollision(Mesh map, Vec2f pos);
 
 #endif

@@ -50,18 +50,26 @@ static void move_camera(Camera_t *cam, float dt) {
 
 static inline void runCollision(Entity_t *ent, float dt) {
     float subDt = dt / subStep;
+    Vec3f newPos = ent->object.pos;
 
     for (int i = 0; i < subStep; i++) {
         Vec3f movement = {ent->object.velocity.x * subDt, ent->object.velocity.y * subDt, ent->object.velocity.z * subDt};
         for (int z = 0; z < 2; z++) {
+            Vec3f originalPos = newPos;
             if (z) {
-                ent->object.pos.y += movement.y;
+                newPos.y += movement.y;
             } else {
-                ent->object.pos.x += movement.x;
-                ent->object.pos.z += movement.z;
+                newPos.x += movement.x;
+                newPos.z += movement.z;
             }
 
-            VectMf pushMap = cylinderInTriangle(ent->object.pos, ent->radius, ent->height);
+            if (!hasCollidableTriangleBelow(newPos, ent->height)) {
+                newPos = originalPos;
+                ent->object.pos = originalPos;
+                return;
+            }
+
+            VectMf pushMap = cylinderInTriangle(newPos, ent->radius, ent->height);
 
             if (pushMap.floor) {
                 ent->grounded = 1;
@@ -110,7 +118,7 @@ static inline void runCollision(Entity_t *ent, float dt) {
                 }
             }
 
-            if (pushMap.floor || pushMap.ceiling || pushMap.wall) ent->object.pos = pushMap.pos;
+            ent->object.pos = pushMap.pos;
         }
     }
 }

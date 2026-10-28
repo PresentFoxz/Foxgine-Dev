@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include "fox_lut.h"
+#include "fox_fixed.h"
 
 #ifdef PLATFORM_WIN
 

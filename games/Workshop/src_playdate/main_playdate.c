@@ -1,0 +1,162 @@
+#include "fox_library.h"
+#include "fox_scene.h"
+#include "fox_structs.h"
+#include "fox_mesh.h"
+#include "fox_draw.h"
+
+#include "objects/entities.h"
+
+PlaydateAPI* pd;
+#define FPS 30
+
+Camera_t cam;
+Entity_t player;
+Pixel_t *mainBuffer;
+Pixel_t *screenBuffer;
+int interlace = 0;
+int interlaceAmt = 1;
+bool canInterlace = true;
+
+Mesh map;
+MeshAnimations *animModels;
+Objects_t *objList;
+Entity_t *entList;
+int objMax = 1;
+int entMax = 0;
+
+static int update(void* userdata);
+
+const int MAIN_SCREEN_W = 400;
+const int MAIN_SCREEN_H = 240;
+const int SCREEN_W = (MAIN_SCREEN_W / 2);
+const int SCREEN_H = (MAIN_SCREEN_H / 2);
+
+float *zBuffer = NULL;
+
+#ifdef _WINDLL
+__declspec(dllexport)
+#endif
+int eventHandler(PlaydateAPI* playdate, PDSystemEvent event, uint32_t arg) {
+	if ( event == kEventInit ) {
+        pd = playdate;
+
+		pd->display->setRefreshRate(FPS);
+		pd->system->setUpdateCallback(update, NULL);
+	}
+
+	return 0;
+}
+
+static int init() {
+    // screenBuffer = fox_malloc(MAIN_SCREEN_W * MAIN_SCREEN_H * sizeof(Pixel_t));
+    mainBuffer = fox_malloc(SCREEN_W * SCREEN_H * sizeof(Pixel_t));
+    zBuffer = fox_malloc(SCREEN_W * SCREEN_H * sizeof(float));
+
+    cam = (Camera_t){
+        .pos = (Vec3f){0.0f, 0.0f, -2.0f}, .rot = (Vec3f){0.0f, 0.0f, 0.0f},
+        .fov = DEG2RAD(90.0f), .nearPlane = 0.001f, .farPlane = 1000.0f
+    };
+    player = (Entity_t){
+        .coyote = 0, .grounded = 0, .radius = 0.8, .height = 1.8,
+        .gravity = -5.8, .maxGrav = -20.36, .airFriction = 0, .airSpeed = 0, .friction = 0.95, .jumpPower = 0, .speed = 25.32,
+        .object = (Objects_t){.pos = (Vec3f){0, 10, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f}
+    };
+
+    load_mesh(&map, "mesh/Castle.fox");
+
+    animModels = fox_malloc(sizeof(MeshAnimations) * 1);
+    objList = fox_malloc(sizeof(Objects_t) * objMax);
+    entList = fox_malloc(sizeof(Entity_t) * entMax);
+
+    objList[0] = (Objects_t){.pos = (Vec3f){0, 0, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
+
+    load_modelAnimation(&animModels[0], "mesh/chicken/anim.vul");
+    add_objCount(objMax + entMax + 1);
+
+    pd->system->logToConsole("Ran init function!");
+    return 0;
+}
+
+static void draw_to_playdate() {
+    screenBuffer = pd->graphics->getFrame();
+
+    bool upscale = false;
+    if (MAIN_SCREEN_W != SCREEN_W || MAIN_SCREEN_H != SCREEN_H) { upscale = true; }
+
+    for(int y = 0; y < MAIN_SCREEN_H; y++) {
+        for(int x = 0; x < MAIN_SCREEN_W; x++) {
+            Vec2i sp = {x, y};
+            if (upscale) {
+                sp.x = x >> 1;
+                sp.y = y >> 1;
+            }
+
+            Pixel_t pixel = mainBuffer[sp.y * SCREEN_W + sp.x];
+
+            int index = y * 52 + (x >> 3);
+            uint8_t mask = 1 << (7 - (x & 7));
+
+            if(pixel) { screenBuffer[index] |= mask; }
+            else { screenBuffer[index] &= ~mask; }
+        }
+    }
+
+    pd->graphics->markUpdatedRows(0, MAIN_SCREEN_H - 1);
+}
+
+bool firstRun = true;
+static int update(void* userdata) {
+    if (firstRun) {
+        init();
+        
+        add_triCount(map.triCount);
+        alloc_mesh();
+        firstRun = false;
+        
+        return 1;
+    }
+
+    interlace ^= 1;
+    // pd->graphics->setDrawMode(kDrawModeFillWhite);
+    clear_buf(0, cam.farPlane);
+    
+    float deltaTime = pd->system->getElapsedTime();
+    pd->system->resetElapsedTime();
+
+    move_camera(&cam, deltaTime);
+    computeCamData(&cam);
+
+    move_player(&player, cam, deltaTime);
+
+    computeMatrixModel(&map, (Vec3f){0, 0, 0}, (Vec3f){1.0f, 1.0f, 1.0f});
+    if (check_renderable(&map, cam, (Vec3f){0, 0, 0})) { add_mesh_scene(map, (Vec3f){0, 0, 0}, cam, true); }
+
+    for (int i=0; i < objMax; i++) {
+        Objects_t obj = objList[i];
+
+        if (check_renderable(&animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.currentFrame].ModelFrame, cam, obj.pos)) {
+            add_obj_scene(obj.pos, obj.distMod, cam, 0, OBJECT);
+        }
+    }
+
+    for (int i=0; i < entMax; i++) {
+        Entity_t ent = entList[i];
+        Objects_t obj = ent.object;
+
+        if (check_renderable(&animModels[obj.modelID].ModelAnimations[obj.currentAnim][obj.currentFrame].ModelFrame, cam, obj.pos)) {
+            add_obj_scene(obj.pos, obj.distMod, cam, 0, ENTITY);
+        }
+    }
+
+    if (check_renderable(&animModels[player.object.modelID].ModelAnimations[player.object.currentAnim][player.object.currentFrame].ModelFrame, cam, player.object.pos)) {
+        add_obj_scene(player.object.pos, player.object.distMod, cam, 0, PLAYER);
+    }
+
+    draw_tris(cam, objList, entList, player, animModels);
+    draw_to_playdate();
+
+    pd->graphics->fillRect(0, 0, 20, 20, kColorWhite);
+    pd->system->drawFPS(2, 2);
+
+    return 1;
+}

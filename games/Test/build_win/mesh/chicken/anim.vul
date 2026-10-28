@@ -3,7 +3,7 @@
 Animations 1
 
 # Idle
-StartAnim 1
+StartAnim 2
 Frame mesh/chicken/chicken.fox 3
 Frame mesh/chicken/cube.fox 3
 EndAnim

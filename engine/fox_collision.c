@@ -265,6 +265,34 @@ static Vec3f closestPointTriangle(Vec3f p, Vec3f a, Vec3f b, Vec3f c) {
     return (Vec3f){a.x + ab.x * v + ac.x * w, a.y + ab.y * v + ac.y * w, a.z + ab.z * v + ac.z * w};
 }
 
+bool hasCollidableTriangleBelow(Vec3f pos, float height) {
+    for (int c = 0; c < chunkAmt; c++) {
+        CollisionChunks *chunk = &collisionChunkSurfaces[c];
+
+        if (chunk->amt == 0) continue;
+
+        float minX = chunk->pos.x * CHUNK_SIZE;
+        float minZ = chunk->pos.z * CHUNK_SIZE;
+
+        if (pos.x + TRI_EPSILON < minX || pos.x - TRI_EPSILON > minX + CHUNK_SIZE) continue;
+        if (pos.z + TRI_EPSILON < minZ || pos.z - TRI_EPSILON > minZ + CHUNK_SIZE) continue;
+
+        for (int i = 0; i < chunk->amt; i++) {
+            CollisionSurface *tri = &chunk->collisions[i];
+
+            if (tri->type == OUT_OF_BOUNDS) continue;
+            if (tri->minY > pos.y) continue;
+
+            if (pos.x + TRI_EPSILON < tri->minX || pos.x - TRI_EPSILON > tri->maxX ||
+                pos.z + TRI_EPSILON < tri->minZ || pos.z - TRI_EPSILON > tri->maxZ) continue;
+            
+            return true;
+        }
+    }
+
+    return false;
+}
+
 VectMf cylinderInTriangle(Vec3f pos, float radius, float height) {
     VectMf pushPlayer = {0};
 
