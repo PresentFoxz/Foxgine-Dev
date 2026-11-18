@@ -83,10 +83,18 @@ static inline void runCollision(Entity_t *ent, float dt) {
             if (!hasCollidableTriangleBelow(newPos, ent->height)) {
                 newPos = originalPos;
                 ent->object.pos = originalPos;
+                ent->object.velocity = (Vec3f){0, 0, 0};
                 return;
             }
 
             VectMf pushMap = cylinderInTriangle(newPos, ent->radius, ent->height);
+
+            if (pushMap.oob) {
+                ent->object.pos = originalPos;
+                ent->object.velocity.x = 0.0f;
+                ent->object.velocity.z = 0.0f;
+                return;
+            }
 
             if (pushMap.floor) {
                 ent->grounded = 1;
@@ -200,7 +208,8 @@ static void move_entity(Entity_t *entity, float dt) {
 
     runCollision(entity, dt);
 
-    entity->object.rot.y += DEG2RAD(5);
+    entity->object.rot.y += DEG2RAD(300.0f) * dt;
+    if (entity->object.rot.y >= DEG2RAD(360.0f)) entity->object.rot.y -= DEG2RAD(360.0f);
 }
 
 #endif

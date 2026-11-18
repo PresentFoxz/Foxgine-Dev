@@ -28,7 +28,7 @@ typedef struct {
     Vec3f normal;
     Vec3f slopeNormal;
     
-    int floor, ceiling, wall, slope;
+    int floor, ceiling, wall, slope, oob;
 } VectMf;
 
 typedef struct {

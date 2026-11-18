@@ -181,8 +181,8 @@ static void init() {
     // objList[0] = (Objects_t){.pos = (Vec3f){0, 0, 0}, .rot = (Vec3f){0, 0, 0}, .size = (Vec3f){1, 1, 1}, .modelID = 0, .distMod = 50.0f};
 
     load_mesh(&map, "mesh/Castle.fox");
-    load_mesh(&modelObjects[0], "mesh/Bob.fox");
-    load_modelAnimation(&animModels[0], "mesh/chicken/Test.vul");
+    load_mesh(&modelObjects[0], "mesh/Lennox.fox");
+    load_modelAnimation(&animModels[0], "mesh/lennox/lennox.vul");
     add_objCount(objMax + entMax + 1);
 
     resetCollisionSurface();

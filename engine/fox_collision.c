@@ -362,7 +362,12 @@ VectMf cylinderInTriangle(Vec3f pos, float radius, float height) {
 
                 distancePassed++;
 
-                if (tri->type == OUT_OF_BOUNDS) return (VectMf){0, 0, 0, -1, -1, -1, -1};
+                if (tri->type == OUT_OF_BOUNDS) {
+                    VectMf bound = {0};
+                    bound.pos = pos;
+                    bound.oob = 1;
+                    return bound;
+                }
 
                 float dist = sqrtf(dist2);
                 float penetration = r - dist;

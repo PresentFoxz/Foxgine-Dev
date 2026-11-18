@@ -309,9 +309,11 @@ void add_mesh_obj(Mesh model, Vec3f pos, Vec3f rot, Vec3f size, Camera_t cam, bo
         newMesh.tris[newMesh.triCount++] = (Triangle_t){ .p0 = triStore[0], .p1 = triStore[1], .p2 = triStore[2], .color = tri.color };
     }
 
-    if (newDistAmt > 1) quickSortIndices(newDist, 0, newDistAmt - 1);
-
+    // if (newDistAmt > 1) quickSortIndices(newDist, 0, newDistAmt - 1);
     for (int t=0; t < newDistAmt; t++) { renderTriangle(newMesh.tris[newDist[t].idx], cam); }
+
+    fox_free(newMesh.tris);
+    fox_free(newDist);
 }
 
 void computeCamData(Camera_t *cam) {

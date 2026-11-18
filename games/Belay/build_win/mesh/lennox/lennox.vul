@@ -1,0 +1,8 @@
+# Test Animation Index
+
+Animations 1
+
+# Idle
+StartAnim 1
+Frame mesh/lennox/Idle/Lennox_0001.fox 1
+EndAnim
